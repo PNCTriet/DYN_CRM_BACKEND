@@ -108,7 +108,9 @@ Law-firm CRM mixes CRM language (Lead, Customer) with legal (Contract) and accou
 
 ### 4.6 Finance chain (canonical phrase)
 
-**Contract → Order → Invoice → Payment → Commission**
+**Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice → Commission**
+
+(Invoice is issued **after** Payment.)
 
 ### 4.7 Terms explicitly rejected / avoided
 

@@ -33,7 +33,7 @@ Quy mô ước lượng: **~30 user đồng thời**, triển khai single-tenant
 | Lawyer | Giao hàng pháp lý | Contract, workflow, file, timeline |
 | Legal Assistant | Hỗ trợ giao hàng | Task, file, dữ liệu hỗ trợ khách |
 | Accounting | Tài chính | Order, invoice, VAT, payment |
-| Collaborator (CTV) | Đối tác giới thiệu ngoài | Portal hạn chế: referral, hoa hồng, hồ sơ |
+| Collaborator (CTV) | Đối tác giới thiệu ngoài | Portal Collaboration: khách gán, Contract Request, referral, hoa hồng, hồ sơ |
 
 ### 4.2 Đối tượng nghiệp vụ lõi (canonical)
 
@@ -44,8 +44,8 @@ Quy mô ước lượng: **~30 user đồng thời**, triển khai single-tenant
 | Contact | Người liên quan tới Customer (và có thể Lead) |
 | Contract | Thỏa thuận pháp lý với Customer |
 | Order | Giao dịch tài chính sinh từ Contract |
-| Invoice | Hóa đơn phát hành từ Contract, Milestone, hoặc Manual |
-| Payment | Khoản tiền đã thu (toàn phần hoặc một phần) |
+| Invoice | Hóa đơn VAT phát hành **sau** Payment (có thể tham chiếu Contract / Milestone / Manual) |
+| Payment | Khoản tiền đã thu (toàn phần hoặc một phần) theo lịch/nghĩa vụ — **trước** hóa đơn VAT |
 | Commission | Số tiền hoa hồng theo thanh toán đã thu |
 | Workflow | Đường thực thi cấu hình được kèm task |
 | File | Tài liệu lưu qua StoragePort (MVP: Supabase Storage) |
@@ -96,21 +96,24 @@ Workflow template chạy song song với tiến độ hợp đồng: stage, task
 ```mermaid
 flowchart TD
   C[Contract] --> O[Order]
-  O --> I[Invoice]
-  I --> P[Payment]
-  P --> Comm[Commission calculation]
-  I -.->|VAT 10% exclusive| VAT[VAT amount]
-  P -.->|partial allowed| I
+  O --> S[Payment_Schedule]
+  S --> P[Payment]
+  P --> D[Debt]
+  P --> I[VAT_Invoice]
+  P --> Comm[Commission]
+  I -.->|VAT 10% exclusive| VAT[VAT_amount]
+  P -.->|partial allowed| D
 ```
 
-Invoice cũng có thể tạo từ **Milestone** hoặc **Manual**, vẫn trong kiểm soát finance.
+Hóa đơn VAT tạo **sau** Payment. Invoice vẫn có thể tham chiếu Contract, Milestone, hoặc Manual.
 
 #### VS-4: Hoa hồng CTV
 
-1. CTV giới thiệu cơ hội (liên kết referral — field chi tiết TBD ở domain docs).
-2. Customer/contract/payment diễn ra trong CRM (role nhân sự).
-3. Khi có **thanh toán đã thu**, engine hoa hồng áp dụng **% cấu hình được**.
-4. CTV chỉ xem hoa hồng và referral của mình trên portal.
+1. CTV giới thiệu / được gán khách (chi tiết linkage ở Collaboration domain).
+2. CTV có thể gửi Contract Request; nhân sự duyệt → Official Contract.
+3. Customer/contract/payment diễn ra trong CRM (role nhân sự).
+4. Khi có **thanh toán đã thu**, engine hoa hồng áp dụng **% cấu hình được**.
+5. CTV chỉ xem hoa hồng (và dữ liệu portal trong scope) của mình.
 
 ### 4.4 Giả định tổ chức (đã khóa)
 
@@ -129,7 +132,7 @@ Invoice cũng có thể tạo từ **Milestone** hoặc **Manual**, vẫn trong 
 3. Contract là pháp lý; Order là tài chính; không dùng một từ cho cả hai.
 4. Thanh toán có thể một phần; màn hình finance phải hiện số còn lại (cách tính ở domain/finance docs).
 5. MVP không tính hoa hồng từ số chưa thu trên invoice hay giá trị hợp đồng thô.
-6. CTV không được thao tác như nhân sự CRM.
+6. CTV không thao tác full CRM/Legal/Finance nhân sự; chỉ portal Collaboration (cho phép khách gán + Contract Request).
 7. Chính sách chưa xác nhận (giảm giá, hoàn tiền, credit note, xuất HĐĐT) **chưa nằm trong rule đã tài liệu hóa**.
 
 ## 6. Best practices
@@ -150,13 +153,13 @@ Invoice cũng có thể tạo từ **Milestone** hoặc **Manual**, vẫn trong 
 ## 7. Ví dụ
 
 **Ví dụ A — Khách cá nhân**  
-Sales tạo Lead “Nguyễn Văn A”, qualify, convert thành Customer (Individual), Owner = user Sales. Luật sư tạo Contract (Draft → … → Signed). Gán workflow template. Kế toán tạo Order từ Contract, xuất Invoice (VAT exclusive), ghi nhận chuyển khoản một phần. Job hoa hồng cộng % số đã thu cho CTV liên kết (nếu có).
+Sales tạo Lead “Nguyễn Văn A”, qualify, convert thành Customer (Individual), Owner = user Sales. Luật sư tạo Contract (Draft → … → Signed). Gán workflow template. Kế toán tạo Order và Payment Schedule, ghi nhận chuyển khoản một phần, rồi xuất hóa đơn VAT (exclusive). Job hoa hồng cộng % số đã thu cho CTV liên kết (nếu có).
 
 **Ví dụ B — Khách công ty**  
 Customer loại Company với Contact (người ký, kế toán). Cùng chuỗi contract/finance. Follower gồm Legal Assistant.
 
 **Ví dụ C — CTV**  
-CTV vào portal, thấy referral và hoa hồng từ tiền đã thu. Mở danh sách Contract bị từ chối.
+CTV vào portal Collaboration, quản lý khách được gán, có thể gửi Contract Request, xem hoa hồng từ tiền đã thu. Mở danh sách Contract nhân sự hoặc tự tạo Official Contract bị từ chối.
 
 ## 8. Cải tiến tương lai
 

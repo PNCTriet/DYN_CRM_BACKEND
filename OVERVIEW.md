@@ -1,98 +1,45 @@
 # DYN CRM — Project Overview
 
-> Tóm tắt trạng thái dự án và công việc đã hoàn thành.  
-> Cập nhật lần cuối: **2026-08-03** — **Phase 01 Architecture hoàn tất**
+> Cập nhật: **2026-08-03** — Phase 02 delivered; **2 quyết định chặn schema đã khóa**
 
 ---
 
-## 1. Dự án là gì?
+## Tiến độ
 
-**DYN CRM** — hệ thống CRM/ERP cho văn phòng luật: quản lý Lead/Customer, hợp đồng, workflow, tài chính (Order → Invoice → Payment), VAT, hoa hồng CTV, dashboard và thông báo.
-
-| Hạng mục | Giá trị đã khóa |
-|----------|-----------------|
-| Tenancy MVP | Single-tenant (thiết kế sẵn multi-tenant) |
-| Người dùng ước lượng | ~30 concurrent |
-| Thời gian MVP | 4–5 tháng |
-| Kiến trúc | Modular monolith (DDD-lite), monorepo |
-| Stack (MVP) | NestJS + Worker (Railway), Next.js (Vercel), Prisma → Supabase PG, Supabase Auth (BFF), Supabase Storage (port), Redis/BullMQ (Railway), Resend |
-| UI MVP | Tiếng Việt (English ở Phase 2) |
-| Docs kỹ thuật | English + bản `.vi.md` cho stakeholder |
+| Phase | Status |
+|-------|--------|
+| 00 — Project | ✅ Locked (re-synced 2026-08-03) |
+| 01 — Architecture | ✅ Locked |
+| 02 — Domain | ✅ Delivered + **CTV / Finance chain locked** |
+| 03 — Database | ⏳ Next |
+| 04+ / Code | ⏳ |
 
 ---
 
-## 2. Việc đã làm
+## Quyết định vừa khóa (2026-08-03)
 
-### 2.1 Phase 00 — Project ✅
+1. **CTV — mở rộng Collaboration**  
+   Portal: referral, khách **được gán**, Contract Request, hoa hồng của mình, profile.  
+   Không tạo Official Contract; không full CRM nhân sự.
 
-| File (EN) | File (VI) | Nội dung |
-|-----------|-----------|----------|
-| `docs/00-project/README.md` | `README.vi.md` | Mục lục |
-| `Vision.md` | `Vision.vi.md` | Tầm nhìn |
-| `Scope.md` | `Scope.vi.md` | Phạm vi MVP |
-| `Business.md` | `Business.vi.md` | Nghiệp vụ / value stream |
-| `Timeline.md` | `Timeline.vi.md` | Lịch 4–5 tháng |
-| `Roadmap.md` | `Roadmap.vi.md` | Sau MVP |
-| `Glossary.md` | `Glossary.vi.md` | Thuật ngữ |
+2. **Chuỗi tiền**  
+   `Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice → Commission`  
+   **Hóa đơn VAT sau Payment.**
 
-### 2.2 Phase 01 — Architecture ✅
-
-| File | Status |
-|------|--------|
-| `Architecture.md` (+ `.vi`) | ✅ Locked |
-| `TechStack.md` (+ `.vi`) | ✅ Locked |
-| `Module.md` (+ `.vi`) | ✅ Locked |
-| `Security.md` (+ `.vi`) | ✅ Locked |
-| `Deployment.md` (+ `.vi`) | ✅ Locked |
-| `Monitoring.md` (+ `.vi`) | ✅ Locked |
-| `Decisions/ADR-001.md` | ✅ Accepted — Modular monolith + ports |
-| `Decisions/ADR-002.md` | ✅ Accepted — Prisma + Supabase PG SoR |
-
-```text
-docs/
-  00-project/          ✅
-  01-architecture/     ✅
-  02-domain/           ⏳ Tiếp theo
-  03-database/         ⏳
-  04-development/      ⏳
-  05-guidelines/       ⏳
-```
-
-### 2.3 Chưa làm (cố ý)
-
-- Chưa scaffold monorepo / code ứng dụng
-- Chưa Prisma schema / migration
-- Chưa Phase 02 Domain trở đi
+Docs đã cập nhật: `Scope` (+VI), `Glossary` (+VI), `Roadmap`, `Architecture`, `Collaboration`, `Finance`, `BusinessCapabilityMap`.
 
 ---
 
-## 3. Quyết định nghiệp vụ đã khóa (tóm tắt)
+## Open Questions còn lại (không chặn 2 quyết định trên)
 
-```text
-Lead → Qualified → Customer (Individual | Company)
-Customer: 1 Owner + Followers tùy chọn
-Contract → Order → Invoice → Payment → Commission (trên tiền đã thu)
-VAT 10% exclusive · VND · Partial payment · CTV portal hạn chế
-```
+- Attribution referral / field Contract Request / ai gán khách CTV  
+- Cancelled matrix + Contract vs Workflow complete  
+- Debt model; commission Recorded vs Verified  
+- Lead status / duplicate / convert map  
 
 ---
 
-## 4. Việc tiếp theo
+## Điểm vào
 
-| Thứ tự | Việc |
-|--------|------|
-| 1 | **Phase 02 — Domain** (`docs/02-domain/*`) |
-| 2 | Phase 03 — Database |
-| 3 | Phase 04–05 — Dev & Guidelines |
-| 4 | Implementation — monorepo scaffold |
-
----
-
-## 5. Điểm vào nhanh
-
-| Mục đích | Đường dẫn |
-|----------|-----------|
-| Overview | [`OVERVIEW.md`](./OVERVIEW.md) |
-| Phase 00 | [`docs/00-project/README.md`](./docs/00-project/README.md) |
-| Phase 01 Architecture | [`docs/01-architecture/Architecture.md`](./docs/01-architecture/Architecture.md) |
-| ADR | [`docs/01-architecture/Decisions/`](./docs/01-architecture/Decisions/) |
+- Phase 02: [`docs/02-domain/README.md`](./docs/02-domain/README.md)  
+- Scope: [`docs/00-project/Scope.md`](./docs/00-project/Scope.md)  

@@ -7,8 +7,8 @@ Law-firm CRM monorepo (documentation in progress; implementation not started).
 | Phase | Status |
 |-------|--------|
 | 00 — Project | Done |
-| 01 — Architecture | **Done** |
-| 02 — Domain | Next |
+| 01 — Architecture | Done |
+| 02 — Domain | **Delivered** — close Open Questions next |
 | 03 — Database | Pending |
 | 04 — Development | Pending |
 | 05 — Guidelines | Pending |
@@ -17,9 +17,9 @@ Full summary: [`OVERVIEW.md`](./OVERVIEW.md)
 
 ## Documentation
 
-- Phase 00: [`docs/00-project/README.md`](./docs/00-project/README.md)
-- Phase 01: [`docs/01-architecture/Architecture.md`](./docs/01-architecture/Architecture.md)
-- ADRs: [`docs/01-architecture/Decisions/`](./docs/01-architecture/Decisions/)
+- Phase 00: [`docs/00-project/`](./docs/00-project/)
+- Phase 01: [`docs/01-architecture/`](./docs/01-architecture/)
+- Phase 02: [`docs/02-domain/`](./docs/02-domain/)
 
 ## Locked stack (MVP)
 

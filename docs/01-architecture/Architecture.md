@@ -21,7 +21,7 @@ Audience: architects, tech leads, backend/frontend engineers, and reviewers of P
 
 ## 3. Background
 
-Phase 00 locked product scope for a law-firm CRM: Lead → Customer → Contract → Order → Invoice → Payment → Commission, configurable workflows, CTV restricted portal, Vietnamese UI, single-tenant MVP.
+Phase 00 locked product scope for a law-firm CRM: Lead → Customer → Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice → Commission (invoice after payment), configurable workflows, CTV Collaboration portal (expanded), Vietnamese UI, single-tenant MVP.
 
 Infrastructure choices were revised for Phase 01 and synced into Phase 00 platform rows:
 

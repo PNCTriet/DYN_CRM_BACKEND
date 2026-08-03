@@ -109,8 +109,9 @@ CRM văn phòng luật trộn ngôn ngữ CRM (Lead, Customer), pháp lý (Contr
 
 ### 4.6 Chuỗi tài chính (cụm từ chuẩn)
 
-**Contract → Order → Invoice → Payment → Commission**  
-(Hợp đồng → Đơn hàng → Hóa đơn → Thanh toán → Hoa hồng)
+**Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice → Commission**
+
+(Hóa đơn VAT phát hành **sau** Payment.)
 
 ### 4.7 Thuật ngữ từ chối / tránh
 

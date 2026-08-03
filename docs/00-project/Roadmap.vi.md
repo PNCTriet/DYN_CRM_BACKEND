@@ -15,7 +15,7 @@ Mô tả tăng trưởng năng lực **sau** khi MVP được chấp nhận, g�
 
 ## 3. Bối cảnh
 
-MVP giao CRM single-tenant cho tư vấn pháp lý tổng quát với Contract → Order → Invoice → Payment, workflow cấu hình được, và hoa hồng CTV trên tiền đã thu.
+MVP giao CRM single-tenant cho tư vấn pháp lý tổng quát với Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice → Commission (hóa đơn sau payment), workflow cấu hình được, và portal Collaboration CTV đã mở rộng.
 
 Stakeholder trì hoãn rõ: multi-tenant, đa tiền tệ, lĩnh vực chuyên biệt, cổng thanh toán, hoa hồng nâng cao, UI English, Kubernetes, CI/CD GitHub Actions.
 

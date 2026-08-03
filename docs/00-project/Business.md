@@ -33,7 +33,7 @@ Approximate scale: **~30 concurrent users** on a single-tenant deployment.
 | Lawyer | Legal delivery | Contracts, workflow, files, timeline |
 | Legal Assistant | Delivery support | Tasks, files, customer support data |
 | Accounting | Finance | Orders, invoices, VAT, payments |
-| Collaborator (CTV) | External referral partner | Restricted portal: referrals, commission, profile |
+| Collaborator (CTV) | External referral partner | Collaboration portal: assigned customers, contract requests, referrals, commission, profile |
 
 ### 4.2 Core business objects (canonical)
 
@@ -44,8 +44,8 @@ Approximate scale: **~30 concurrent users** on a single-tenant deployment.
 | Contact | Person related to a Customer (and possibly Lead) |
 | Contract | Legal agreement with the Customer |
 | Order | Financial transaction generated from a Contract |
-| Invoice | Bill issued from Contract, Milestone, or Manual entry |
-| Payment | Collected money (full or partial) against invoice/obligation |
+| Invoice | VAT bill issued **after** Payment (may reference Contract / Milestone / Manual) |
+| Payment | Collected money (full or partial) against schedule/obligation — **before** VAT Invoice |
 | Commission | Amount owed to entitled party based on collected payment |
 | Workflow | Configurable execution path with tasks |
 | File | Stored document via StoragePort (MVP: Supabase Storage) |
@@ -96,21 +96,24 @@ Workflow templates run in parallel with contract progress: stages, tasks, due da
 ```mermaid
 flowchart TD
   C[Contract] --> O[Order]
-  O --> I[Invoice]
-  I --> P[Payment]
-  P --> Comm[Commission calculation]
-  I -.->|VAT 10% exclusive| VAT[VAT amount]
-  P -.->|partial allowed| I
+  O --> S[Payment_Schedule]
+  S --> P[Payment]
+  P --> D[Debt]
+  P --> I[VAT_Invoice]
+  P --> Comm[Commission]
+  I -.->|VAT 10% exclusive| VAT[VAT_amount]
+  P -.->|partial allowed| D
 ```
 
-Invoice may also be created from **Milestone** or **Manual** paths, still within finance controls.
+VAT Invoice is created **after** Payment. Invoice may still reference Contract, Milestone, or Manual context.
 
 #### VS-4: Collaborator commission
 
-1. CTV refers opportunity (referral linkage — detailed fields TBD in domain docs).
-2. Customer/contract/payment proceeds in CRM (staff roles).
-3. On **collected payment**, commission engine applies **configurable %**.
-4. CTV views commission and own referrals in portal only.
+1. CTV refers opportunity / is assigned customers (referral linkage details in Collaboration domain).
+2. CTV may submit Contract Request; staff approve → Official Contract (LegalOperation).
+3. Customer/contract/payment proceeds in CRM (staff roles).
+4. On **collected payment**, commission engine applies **configurable %**.
+5. CTV views own commission (and scoped portal data) only.
 
 ### 4.4 Organizational assumptions (locked)
 
@@ -129,7 +132,7 @@ Invoice may also be created from **Milestone** or **Manual** paths, still within
 3. Contract is legal; Order is financial; do not use one term for both.
 4. Payments may be partial; finance views must show remaining balances (calculation rules in domain/finance docs).
 5. Commission must not be calculated from unpaid invoice amounts or raw contract value in MVP.
-6. CTV must not perform CRM staff operations.
+6. CTV must not perform full staff CRM/Legal/Finance operations; Collaboration portal only (assigned customers + contract requests allowed).
 7. Unconfirmed policies (discount authority, refunds, credit notes, e-invoice legal export) are **out of documented rules** until decided.
 
 ## 6. Best Practices
@@ -150,13 +153,13 @@ Invoice may also be created from **Milestone** or **Manual** paths, still within
 ## 7. Examples
 
 **Example A — Individual client**  
-Sales creates Lead “Nguyen Van A”, qualifies, converts to Customer (Individual), Owner = Sales user. Lawyer creates Contract (Draft → … → Signed). Admin workflow template assigned. Accounting creates Order from Contract, issues Invoice (VAT exclusive), records Bank Transfer partial payment. Commission job accrues % of collected amount to linked CTV if any.
+Sales creates Lead “Nguyen Van A”, qualifies, converts to Customer (Individual), Owner = Sales user. Lawyer creates Contract (Draft → … → Signed). Admin workflow template assigned. Accounting creates Order and Payment Schedule, records Bank Transfer partial payment, then issues VAT Invoice (exclusive). Commission job accrues % of collected amount to linked CTV if any.
 
 **Example B — Company client**  
 Customer type Company with Contacts (signatory, accountant). Same contract/finance chain. Followers include Legal Assistant.
 
 **Example C — CTV**  
-CTV logs into portal, sees referrals attributed to them and commission entries from collected payments. Attempt to open Contracts list is denied.
+CTV logs into Collaboration portal, manages assigned customers, may submit a Contract Request, sees own commission from collected payments. Attempt to open staff Contracts list or create Official Contract directly is denied.
 
 ## 8. Future Improvements
 

@@ -21,7 +21,7 @@
 
 ## 3. Bối cảnh
 
-Phase 00 đã khóa phạm vi sản phẩm CRM văn phòng luật: Lead → Customer → Contract → Order → Invoice → Payment → Commission, workflow cấu hình được, portal CTV hạn chế, UI tiếng Việt, single-tenant MVP.
+Phase 00 đã khóa phạm vi sản phẩm CRM văn phòng luật: Lead → Customer → Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice → Commission (hóa đơn sau payment), workflow cấu hình được, portal Collaboration CTV (đã mở rộng), UI tiếng Việt, single-tenant MVP.
 
 Lựa chọn hạ tầng được điều chỉnh ở Phase 01 và đã đồng bộ vào dòng platform Phase 00:
 

@@ -23,9 +23,9 @@ Stakeholder đã khóa các ràng buộc MVP ngày 2026-08-02:
 - Deploy single-tenant (multi-tenant **ready**, chưa implement)
 - UI tiếng Việt; UI English trì hoãn
 - Chỉ tư vấn pháp lý tổng quát (không chuyên biệt lĩnh vực)
-- Chuỗi tài chính: **Contract → Order → Invoice → Payment**
+- Chuỗi tài chính: **Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice → Commission** (Hóa đơn VAT **sau** Payment; khóa 2026-08-03)
 - Hoa hồng từ **thanh toán đã thu thực tế**
-- CTV dùng **portal hạn chế**, không full CRM
+- CTV dùng **portal hạn chế** với **mở rộng Collaboration** (khóa 2026-08-03): referral của mình, khách được gán, Contract Request, hoa hồng của mình, profile — **không** tự tạo Official Contract hay vào full CRM nhân sự
 - Stack: Modular monolith; NestJS BFF + Supabase Auth; Prisma → Supabase PostgreSQL; Supabase Storage (StoragePort); Redis + BullMQ trên Railway; Next.js trên Vercel; Docker Compose trên VPS = tương lai
 
 ## 4. Thiết kế
@@ -62,8 +62,10 @@ Stakeholder đã khóa các ràng buộc MVP ngày 2026-08-02:
 | Module | Năng lực MVP |
 |--------|--------------|
 | Order | Giao dịch tài chính sinh từ Contract |
-| Invoice | Từ Contract, Milestone, hoặc Manual |
-| Payment | Tiền mặt, chuyển khoản, QR; thanh toán một phần |
+| Payment Schedule | Lịch/đợt thanh toán theo Order |
+| Payment | Tiền mặt, chuyển khoản, QR; thanh toán một phần; **trước** hóa đơn VAT |
+| Debt | Nghĩa vụ còn lại sau thanh toán |
+| VAT Invoice | Phát hành **sau** Payment (có thể tham chiếu Contract / Milestone / Manual) |
 | VAT | 10% exclusive (MVP cố định) |
 
 #### Commission
@@ -71,7 +73,7 @@ Stakeholder đã khóa các ràng buộc MVP ngày 2026-08-02:
 | Module | Năng lực MVP |
 |--------|--------------|
 | Commission | % trên tiền đã thu; tỷ lệ cấu hình được |
-| Collaborator (CTV) | Đối tác giới thiệu; portal hạn chế |
+| Collaborator (CTV) | Đối tác giới thiệu; portal Collaboration (xem dưới) |
 
 #### System
 
@@ -91,12 +93,24 @@ Stakeholder đã khóa các ràng buộc MVP ngày 2026-08-02:
 | Manager | Giám sát team/pipeline (chi tiết ở auth/domain docs) |
 | Lawyer | Công việc pháp lý, hợp đồng, workflow |
 | Legal Assistant | Hỗ trợ vận hành pháp lý |
-| Accounting | Order, invoice, payment, VAT |
+| Accounting | Order, lịch thanh toán, payment, hóa đơn VAT, nợ |
 | Sales | Lead, customer, công việc pipeline |
-| Collaborator (CTV) | Chỉ portal hạn chế |
+| Collaborator (CTV) | Chỉ portal Collaboration hạn chế |
 
-CTV **được**: xem referral của mình, xem hoa hồng, cập nhật hồ sơ.  
-CTV **không được**: truy cập module CRM đầy đủ.
+CTV **được** (mở rộng Collaboration — khóa 2026-08-03):
+
+- Đăng nhập portal hạn chế
+- Xem referral của mình
+- Quản lý khách **được gán** (có scope — không full CRM)
+- Gửi **Contract Request** (nhân sự phải duyệt trước Official Contract)
+- Xem hoa hồng của mình
+- Cập nhật hồ sơ
+
+CTV **không được**:
+
+- Tự tạo Official Contract
+- Truy cập full CRM / Legal / Finance nhân sự
+- Xem hoa hồng CTV khác hoặc danh sách khách không scope
 
 ### 4.3 Phạm vi nền tảng & giao hàng
 
@@ -144,7 +158,7 @@ flowchart TB
     Core[Auth / RBAC / Users]
     CRM[Lead / Customer / Contact]
     Legal[Contract / Workflow / Files / Timeline]
-    Fin[Order / Invoice / Payment / VAT]
+    Fin[Order / Schedule / Payment / Debt / VAT_Invoice]
     Comm[Commission / CTV Portal]
     Sys[Dashboard / Notification / Email / Config]
   end
@@ -168,14 +182,16 @@ flowchart TB
 3. **Ownership**: Mỗi Customer đúng **một** Owner chính; user khác có thể là Follower.
 4. **Contract** là thỏa thuận pháp lý; **Order** là giao dịch tài chính sinh từ Contract.
 5. **Status Contract (thứ tự)**: Draft → Review → Waiting Customer → Signed → In Progress → Completed; hoặc Cancelled (nhánh kết thúc — chi tiết chuyển trạng thái ở domain docs).
-6. **Nguồn Invoice**: Contract, Milestone, hoặc Manual.
-7. **VAT**: 10%, exclusive, MVP.
-8. **Payment**: Tiền mặt, chuyển khoản, QR; cho thanh toán một phần.
-9. **Cơ sở hoa hồng**: chỉ số tiền thanh toán đã thu thực tế.
-10. **Công thức hoa hồng (MVP)**: % cấu hình được trên tiền đã thu.
-11. **Tiền tệ**: chỉ VND trong MVP.
-12. **Workflow**: template admin cấu hình được với Task, Due Date, Reminder, Assignee; không BPMN.
-13. Hạng mục mục 4.4 không được làm deliverable MVP nếu chưa sửa Scope.
+6. **Chuỗi tài chính (khóa 2026-08-03):** Contract → Order → Payment Schedule → Payment → Debt → **VAT Invoice** → Commission. **Hóa đơn VAT phát hành sau Payment.**
+7. **Nguồn Invoice** (hóa đơn có thể tham chiếu): Contract, Milestone, hoặc Manual — thời điểm vẫn sau Payment.
+8. **VAT**: 10%, exclusive, MVP.
+9. **Payment**: Tiền mặt, chuyển khoản, QR; cho thanh toán một phần.
+10. **Cơ sở hoa hồng**: chỉ số tiền thanh toán đã thu thực tế.
+11. **Công thức hoa hồng (MVP)**: % cấu hình được trên tiền đã thu.
+12. **Tiền tệ**: chỉ VND trong MVP.
+13. **Workflow**: template admin cấu hình được với Task, Due Date, Reminder, Assignee; không BPMN.
+14. **CTV Collaboration (khóa 2026-08-03):** portal được quản lý khách gán và gửi Contract Request; nhân sự duyệt trước Official Contract; không full CRM.
+15. Hạng mục mục 4.4 không được làm deliverable MVP nếu chưa sửa Scope.
 
 ## 6. Best practices
 

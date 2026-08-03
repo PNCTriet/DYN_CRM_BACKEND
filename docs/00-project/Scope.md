@@ -23,9 +23,9 @@ Stakeholders locked the following MVP constraints on 2026-08-02:
 - Single-tenant deployment (multi-tenant **ready**, not implemented)
 - Vietnamese UI; English UI deferred
 - General legal consulting only (no practice specialization)
-- Finance chain: **Contract → Order → Invoice → Payment**
+- Finance chain: **Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice → Commission** (Invoice **after** Payment; locked 2026-08-03)
 - Commission from **actual collected payment**
-- CTV uses a **restricted portal**, not full CRM
+- CTV uses a **restricted portal** with **Collaboration expansion** (locked 2026-08-03): own referrals, assigned customers, contract requests, own commission, profile — **cannot** create official contracts or access full staff CRM
 - Stack: Modular monolith; NestJS BFF + Supabase Auth; Prisma → Supabase PostgreSQL; Supabase Storage (StoragePort); Redis + BullMQ on Railway; Next.js on Vercel; Docker Compose on VPS = future
 
 ## 4. Design
@@ -62,8 +62,10 @@ Stakeholders locked the following MVP constraints on 2026-08-02:
 | Module | MVP capability |
 |--------|----------------|
 | Order | Financial transaction generated from a Contract |
-| Invoice | From Contract, Milestone, or Manual |
-| Payment | Cash, Bank Transfer, QR; partial payments |
+| Payment Schedule | Planned installments / dues against an Order |
+| Payment | Cash, Bank Transfer, QR; partial payments; occurs **before** VAT Invoice |
+| Debt | Remaining obligation after payments |
+| VAT Invoice | Issued **after** Payment (sources may still reference Contract / Milestone / Manual) |
 | VAT | 10% exclusive (MVP fixed rate) |
 
 #### Commission
@@ -71,7 +73,7 @@ Stakeholders locked the following MVP constraints on 2026-08-02:
 | Module | MVP capability |
 |--------|----------------|
 | Commission | Percentage of collected payment; rate configurable |
-| Collaborator (CTV) | Referral partner; limited portal |
+| Collaborator (CTV) | Referral partner; limited Collaboration portal (see below) |
 
 #### System
 
@@ -91,12 +93,24 @@ Stakeholders locked the following MVP constraints on 2026-08-02:
 | Manager | Oversight of teams/pipelines (details in domain/auth docs) |
 | Lawyer | Legal work, contracts, workflows |
 | Legal Assistant | Support legal operations |
-| Accounting | Orders, invoices, payments, VAT |
+| Accounting | Orders, schedules, payments, VAT invoices, debt |
 | Sales | Leads, customers, pipeline-related work |
-| Collaborator (CTV) | Restricted portal only |
+| Collaborator (CTV) | Restricted Collaboration portal only |
 
-CTV **can**: view own referrals, view commission, update profile.  
-CTV **cannot**: access full CRM modules.
+CTV **can** (Collaboration expansion — locked 2026-08-03):
+
+- Log in to limited portal
+- View own referrals
+- Manage **assigned** customers (scoped — not full CRM)
+- Submit **Contract Requests** (staff must approve before official Contract)
+- View own commission
+- Update profile
+
+CTV **cannot**:
+
+- Create official Contracts unilaterally
+- Access full staff CRM / Legal / Finance modules
+- View other CTVs’ commissions or unscoped customer lists
 
 ### 4.3 Platform & delivery scope
 
@@ -144,7 +158,7 @@ flowchart TB
     Core[Auth / RBAC / Users]
     CRM[Lead / Customer / Contact]
     Legal[Contract / Workflow / Files / Timeline]
-    Fin[Order / Invoice / Payment / VAT]
+    Fin[Order / Schedule / Payment / Debt / VAT_Invoice]
     Comm[Commission / CTV Portal]
     Sys[Dashboard / Notification / Email / Config]
   end
@@ -168,14 +182,16 @@ flowchart TB
 3. **Ownership**: Every Customer has exactly **one** primary Owner; additional users may be Followers.
 4. **Contract** is the legal agreement; **Order** is the financial transaction generated from a Contract.
 5. **Contract statuses (ordered)**: Draft → Review → Waiting Customer → Signed → In Progress → Completed; or Cancelled (terminal alternative — transition rules detailed in domain docs).
-6. **Invoice sources**: Contract, Milestone, or Manual.
-7. **VAT**: 10%, tax-exclusive, MVP.
-8. **Payments**: Cash, Bank Transfer, QR; partial payments allowed.
-9. **Commission base**: actual collected payment amount only.
-10. **Commission formula (MVP)**: configurable percentage of collected payment.
-11. **Currency**: VND only in MVP.
-12. **Workflow**: admin-configurable templates with Tasks, Due Date, Reminder, Assignee; no BPMN.
-13. Features listed in section 4.4 must not be implemented as MVP deliverables without Scope revision.
+6. **Finance chain (locked 2026-08-03):** Contract → Order → Payment Schedule → Payment → Debt → **VAT Invoice** → Commission. **VAT Invoice is issued after Payment.**
+7. **Invoice sources** (what the invoice may reference): Contract, Milestone, or Manual — timing remains after Payment.
+8. **VAT**: 10%, tax-exclusive, MVP.
+9. **Payments**: Cash, Bank Transfer, QR; partial payments allowed.
+10. **Commission base**: actual collected payment amount only.
+11. **Commission formula (MVP)**: configurable percentage of collected payment.
+12. **Currency**: VND only in MVP.
+13. **Workflow**: admin-configurable templates with Tasks, Due Date, Reminder, Assignee; no BPMN.
+14. **CTV Collaboration (locked 2026-08-03):** portal may manage assigned customers and submit Contract Requests; staff approval required before Official Contract; no full CRM.
+15. Features listed in section 4.4 must not be implemented as MVP deliverables without Scope revision.
 
 ## 6. Best Practices
 

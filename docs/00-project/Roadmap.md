@@ -15,7 +15,7 @@ Describe capability growth **after** MVP acceptance, including readiness investm
 
 ## 3. Background
 
-MVP delivers a single-tenant law-firm CRM for general legal consulting with Contract → Order → Invoice → Payment, configurable workflows, and CTV commission on collected payments.
+MVP delivers a single-tenant law-firm CRM for general legal consulting with Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice → Commission (invoice after payment), configurable workflows, and expanded CTV Collaboration portal.
 
 Stakeholders explicitly deferred: multi-tenant, multi-currency, practice areas, payment gateways, advanced commission, English UI, Kubernetes, GitHub Actions CI/CD.
 
