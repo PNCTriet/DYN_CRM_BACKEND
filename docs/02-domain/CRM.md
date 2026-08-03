@@ -161,7 +161,7 @@ flowchart LR
 |--------|-------------|
 | Identity | Owner / Follower users |
 | LegalOperation | Customer referenced by Contract |
-| Collaboration | Referral / CTV-related customer visibility (if approved) |
+| Collaboration | Assigned customers / referral anchors (locked Collaboration expansion) |
 | Finance | Customer on Order/Invoice |
 | Communication | Follow-up reminders, assignment notices |
 
@@ -234,7 +234,7 @@ journey
 1. Full Lead status set (beyond New / InProgress / Qualified / Converted / Disqualified)?  
 2. Duplicate match keys (phone, email, tax id, name+phone)? Soft warn vs hard block?  
 3. On convert: which Lead fields map to Customer/Contact?  
-4. Can Contact exist on Lead before conversion? (Phase 00 TODO)  
+4. Can Contact exist on Lead before conversion?  
 5. Owner vs Follower exact write permissions?  
 6. May Lawyers convert leads?  
 7. Referral Lead → mandatory CTV link?
@@ -245,4 +245,99 @@ journey
 - [ ] Lock duplicate policy  
 - [ ] Lock conversion field map  
 - [ ] Publish Excel template column list  
-- [ ] Align CTV customer visibility with Collaboration decision  
+- [x] CTV assigned-customer visibility aligned with Collaboration lock (2026-08-03)
+
+## 15. Aggregate Boundaries
+
+| Aggregate Root | Children / parts (business ownership) | Boundary rule |
+|----------------|----------------------------------------|---------------|
+| **Lead** | Lead notes, lead timeline/activities, import-batch membership | Lead changes stay inside Lead; conversion *creates* Customer aggregate |
+| **Customer** | Contacts, notes, timeline/activities, Followers | Exactly one Owner; Followers do not own the aggregate |
+| **ImportBatch** | Validated rows pending commit | Batch owns preview/duplicate decisions until commit spawns Leads |
+
+Contacts must not exist as orphan masters without a Customer (unless Open Q allows Lead-only contacts before convert).
+
+## 16. Domain Invariants
+
+| ID | Invariant |
+|----|-----------|
+| CRM-I1 | Customer always has exactly **one** Owner |
+| CRM-I2 | Customer `type` is mandatory (Individual \| Company) |
+| CRM-I3 | A Lead cannot be converted more than once |
+| CRM-I4 | Converted Lead cannot be converted again |
+| CRM-I5 | Lead and Customer remain distinct entities |
+| CRM-I6 | Import commit requires Owner assignment |
+| CRM-I7 | CTV never receives unscoped staff CRM access |
+
+## 17. Primary Business Use Cases
+
+| ID | Use case |
+|----|----------|
+| UC01 | Import Leads (Excel pipeline) |
+| UC02 | Create / update Lead manually |
+| UC03 | Assign Lead / change Customer Owner |
+| UC04 | Qualify / disqualify Lead |
+| UC05 | Convert Lead → Customer |
+| UC06 | Add / update Contact |
+| UC07 | Add Note / Timeline activity |
+| UC08 | Search / filter Leads & Customers |
+| UC09 | Follow Customer (Follower) |
+| UC10 | Merge Duplicate (future) |
+
+## 18. Ownership Matrix
+
+| Business Object | Owner Domain | Referenced By |
+|-----------------|--------------|---------------|
+| Lead | CRM | Collaboration, Communication |
+| Customer | CRM | Legal, Finance, Collaboration |
+| Contact | CRM | Legal (context) |
+| ImportBatch | CRM | — |
+| Note / Activity (CRM) | CRM | Communication (optional) |
+
+## 19. Domain Event Matrix
+
+| Event | Producer | Consumers |
+|-------|----------|-----------|
+| `LeadCreated` | CRM | Communication |
+| `LeadAssigned` | CRM | Communication |
+| `LeadQualified` | CRM | Communication (optional) |
+| `LeadConverted` | CRM | Legal, Communication, Dashboard |
+| `LeadDisqualified` | CRM | Communication (optional) |
+| `CustomerCreated` | CRM | Collaboration, Communication |
+| `CustomerOwnerChanged` | CRM | Communication |
+| `ImportCompleted` | CRM | Communication (optional) |
+
+## 20. Business Constraints
+
+| Constraint |
+|------------|
+| Converted Lead is not hard-deleted casually — retain terminal history |
+| Customer linked to Official Contracts should be deactivated, not casually hard-deleted |
+| Committed ImportBatch cannot be re-opened as the same preview batch |
+| Owner change is an explicit business action |
+
+## 21. Dynamic Features
+
+| Feature | MVP stance |
+|---------|------------|
+| Lead sources | Fixed list; extend later by configuration |
+| Excel import | Fixed template; extension point for dynamic mapping — **no metadata engine** |
+| Analytics | Foundation metrics only (§22) |
+
+## 22. Business Metrics
+
+| Metric | Purpose |
+|--------|---------|
+| Lead conversion rate | Pipeline health |
+| Source distribution | Channel mix |
+| Follow-up / activity rate | Sales discipline |
+| Open leads by owner | Workload |
+| Import success vs duplicate rate | Data quality |
+
+## 23. Cross Domain Dependency
+
+| | Domains |
+|--|---------|
+| **Depends on** | Identity |
+| **Provides to** | Legal (Customer), Finance (Customer), Collaboration, Communication |
+| **Does not own** | Contract, Payment, Commission lifecycles |

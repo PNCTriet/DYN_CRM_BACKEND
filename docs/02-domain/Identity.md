@@ -28,6 +28,21 @@ Define the **Identity** business capability: users, authentication subjects, rol
 
 Roles remain **configurable** (assignable permission sets), while MVP ships the Glossary role names as initial bundles.
 
+### Configurable permission philosophy
+
+```text
+Permission  →  Permission Group  →  Role  →  User
+```
+
+| Layer | Responsibility |
+|-------|----------------|
+| **Permission** | Atomic `resource.action` capability (deny if unknown) |
+| **Permission Group** | Admin-friendly bundle of related permissions |
+| **Role** | Assignable named set (Glossary starters + custom later) |
+| **User** | Principal receiving one or more roles |
+
+Philosophy: configure **functions**, not pages; keep bundles editable without redeploying product code; isolate CTV portal bundles from staff CRM/Legal/Finance bundles.
+
 ## 4. Actors
 
 | Actor | Notes |
@@ -177,3 +192,88 @@ flowchart TD
 - [ ] Publish MVP role → permission group bundles  
 - [ ] Confirm Permission Group modeling choice  
 - [ ] Document reserved org/department extension without requiring MVP screens  
+
+## 15. Aggregate Boundaries
+
+| Aggregate Root | Children / parts | Boundary rule |
+|----------------|------------------|---------------|
+| **User** | Status, auth-subject link, role assignments | Owns principal lifecycle |
+| **Role** | Links to Permission Groups (and/or permissions — Open Q) | Configurable named access set |
+| **Permission** | `resource.action` code | Atomic; catalog-owned |
+| **Permission Group** | Set of Permissions | Bundle for admin UX |
+| **Organization / Department** | Extension only | Not required for MVP auth decisions |
+
+## 16. Domain Invariants
+
+| ID | Invariant |
+|----|-----------|
+| ID-I1 | Unknown permission ⇒ **deny** |
+| ID-I2 | Disabled / deactivated user cannot access the system |
+| ID-I3 | Permission codes are unique |
+| ID-I4 | CTV role must not receive staff CRM/Legal/Finance permission bundles |
+| ID-I5 | Authorization is RBAC only in MVP (no ABAC) |
+| ID-I6 | Permissions are function-based (`resource.action`), not page-based |
+
+## 17. Primary Business Use Cases
+
+| ID | Use case |
+|----|----------|
+| UC01 | Create / invite User |
+| UC02 | Activate / suspend / deactivate User |
+| UC03 | Assign / revoke Role |
+| UC04 | Manage Permission Group |
+| UC05 | Publish role → permission bundles |
+| UC06 | Map Auth subject ↔ User |
+| UC07 | Enforce permission check on business actions |
+
+## 18. Ownership Matrix
+
+| Business Object | Owner Domain | Referenced By |
+|-----------------|--------------|---------------|
+| User | Identity | All domains |
+| Role / Permission / Permission Group | Identity | All domains (consume checks) |
+| Auth subject link | Identity | Security (technical) |
+| Organization / Department | Identity (future) | — |
+
+## 19. Domain Event Matrix
+
+| Event | Producer | Consumers |
+|-------|----------|-----------|
+| `UserCreated` / `UserActivated` / `UserDeactivated` | Identity | Communication, all domains (access) |
+| `RoleAssigned` / `RoleRevoked` | Identity | Communication (optional), audit |
+| `PermissionGroupChanged` | Identity | Audit / admin notify |
+| `UserLoggedIn` / `UserLoginFailed` | Identity | Communication, Monitoring |
+
+## 20. Business Constraints
+
+| Constraint |
+|------------|
+| Permission code must be unique |
+| Deactivated user retains history but cannot act |
+| Staff vs CTV bundles remain isolated |
+| Org/Department not required to authorize MVP actions |
+
+## 21. Dynamic Features
+
+| Feature | Stance |
+|---------|--------|
+| Permission → Group → Role → User | Core configurable hierarchy (§3) |
+| Custom roles | Open Q for MVP breadth |
+| Org chart | Extension point only |
+
+## 22. Business Metrics
+
+| Metric | Purpose |
+|--------|---------|
+| Active users by role | Capacity / licensing later |
+| Failed login rate | Security health |
+| Role assignment churn | Access governance |
+| CTV vs staff active count | Partner vs internal mix |
+
+## 23. Cross Domain Dependency
+
+| | Domains |
+|--|---------|
+| **Depends on** | — (foundation; AuthPort is infrastructure) |
+| **Provides to** | CRM, Legal, Finance, Collaboration, Communication |
+| **Does not own** | Business object lifecycles (Customer, Contract, Payment, …) |

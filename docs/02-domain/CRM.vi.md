@@ -166,4 +166,99 @@ classDiagram
 - [ ] Khóa chính sách trùng  
 - [ ] Khóa map convert  
 - [ ] Công bố cột mẫu Excel  
-- [ ] Khớp visibility CTV với quyết định Collaboration  
+- [x] Visibility khách CTV khớp khóa Collaboration (2026-08-03)
+
+## 15. Aggregate Boundaries
+
+| Aggregate Root | Con / thành phần | Quy tắc ranh giới |
+|----------------|------------------|-------------------|
+| **Lead** | Ghi chú Lead, timeline Lead, thành viên import-batch | Thay đổi Lead nằm trong Lead; convert *tạo* Customer |
+| **Customer** | Contacts, notes, timeline, Followers | Đúng một Owner; Follower không sở hữu aggregate |
+| **ImportBatch** | Dòng đã validate chờ commit | Batch sở hữu preview/trùng đến khi commit tạo Lead |
+
+Contact không tồn tại như master mồ côi không có Customer (trừ khi Open Q cho phép contact trên Lead trước convert).
+
+## 16. Domain Invariants
+
+| ID | Invariant |
+|----|-----------|
+| CRM-I1 | Customer luôn có đúng **một** Owner |
+| CRM-I2 | `type` Customer bắt buộc (Individual \| Company) |
+| CRM-I3 | Lead không convert quá một lần |
+| CRM-I4 | Lead đã Converted không convert lại |
+| CRM-I5 | Lead và Customer là thực thể tách biệt |
+| CRM-I6 | Commit import bắt buộc gán Owner |
+| CRM-I7 | CTV không nhận truy cập CRM nhân sự không scoped |
+
+## 17. Primary Business Use Cases
+
+| ID | Use case |
+|----|----------|
+| UC01 | Import Lead (pipeline Excel) |
+| UC02 | Tạo / cập nhật Lead thủ công |
+| UC03 | Gán Lead / đổi Owner Customer |
+| UC04 | Qualify / disqualify Lead |
+| UC05 | Convert Lead → Customer |
+| UC06 | Thêm / cập nhật Contact |
+| UC07 | Thêm Note / Timeline |
+| UC08 | Tìm / lọc Lead & Customer |
+| UC09 | Follow Customer (Follower) |
+| UC10 | Merge trùng (tương lai) |
+
+## 18. Ownership Matrix
+
+| Đối tượng | Domain sở hữu | Được tham chiếu bởi |
+|-----------|---------------|---------------------|
+| Lead | CRM | Collaboration, Communication |
+| Customer | CRM | Legal, Finance, Collaboration |
+| Contact | CRM | Legal (context) |
+| ImportBatch | CRM | — |
+| Note / Activity (CRM) | CRM | Communication (tuỳ chọn) |
+
+## 19. Domain Event Matrix
+
+| Event | Producer | Consumers |
+|-------|----------|-----------|
+| `LeadCreated` | CRM | Communication |
+| `LeadAssigned` | CRM | Communication |
+| `LeadQualified` | CRM | Communication (tuỳ chọn) |
+| `LeadConverted` | CRM | Legal, Communication, Dashboard |
+| `LeadDisqualified` | CRM | Communication (tuỳ chọn) |
+| `CustomerCreated` | CRM | Collaboration, Communication |
+| `CustomerOwnerChanged` | CRM | Communication |
+| `ImportCompleted` | CRM | Communication (tuỳ chọn) |
+
+## 20. Business Constraints
+
+| Ràng buộc |
+|-----------|
+| Lead đã Converted không xóa cứng tùy tiện — giữ lịch sử terminal |
+| Customer gắn Official Contract nên deactivate, không xóa cứng tùy tiện |
+| ImportBatch đã commit không mở lại như cùng batch preview |
+| Đổi Owner là hành động nghiệp vụ tường minh |
+
+## 21. Dynamic Features
+
+| Tính năng | Lập trường MVP |
+|-----------|----------------|
+| Nguồn Lead | Danh sách cố định; mở rộng cấu hình sau |
+| Import Excel | Template cố định; điểm mở mapping động — **không** metadata engine |
+| Analytics | Chỉ metrics nền (§22) |
+
+## 22. Business Metrics
+
+| Metric | Mục đích |
+|--------|----------|
+| Tỷ lệ convert Lead | Sức khỏe pipeline |
+| Phân bố nguồn | Mix kênh |
+| Tỷ lệ follow-up / activity | Kỷ luật bán hàng |
+| Lead mở theo owner | Workload |
+| Import thành công vs trùng | Chất lượng dữ liệu |
+
+## 23. Cross Domain Dependency
+
+| | Domain |
+|--|--------|
+| **Phụ thuộc** | Identity |
+| **Cung cấp cho** | Legal (Customer), Finance (Customer), Collaboration, Communication |
+| **Không sở hữu** | Vòng đời Contract, Payment, Commission |

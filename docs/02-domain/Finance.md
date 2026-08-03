@@ -197,3 +197,95 @@ classDiagram
 - [ ] Lock commission trigger (recorded vs verified)  
 - [ ] Confirm VAT invoice numbering rules (legal)  
 - [ ] Confirm 1:1 vs N:1 Payment→Invoice policy  
+
+## 15. Aggregate Boundaries
+
+| Aggregate Root | Children / parts | Boundary rule |
+|----------------|------------------|---------------|
+| **Order** | Link to Contract; totals; schedule ownership | Order owns planned money for one Contract context |
+| **Payment Schedule** | Schedule lines / installments | Owned under Order |
+| **Payment** | Amount, method, verification state | Against Order/Schedule; cannot orphan from Order |
+| **Debt** | Remaining obligation (view and/or store — Open Q) | Derived from Order vs Payments |
+| **VAT Invoice** | Tax document after Payment | Issued after Payment; may reference Contract/Milestone/Manual |
+| **Commission** | % of collected payment; beneficiary | Calculated from collected Payment only |
+
+## 16. Domain Invariants
+
+| ID | Invariant |
+|----|-----------|
+| FIN-I1 | Payment amount cannot exceed outstanding balance (partial allowed within remaining) |
+| FIN-I2 | Commission is calculated only from **collected payment**, never from Contract value alone |
+| FIN-I3 | VAT Invoice is issued **after** Payment (locked chain) |
+| FIN-I4 | Order originates from Contract |
+| FIN-I5 | Verified Payment is the trusted collected signal for downstream commission (exact Recorded vs Verified trigger → Open Q) |
+| FIN-I6 | Currency MVP is VND; VAT MVP is 10% exclusive |
+
+## 17. Primary Business Use Cases
+
+| ID | Use case |
+|----|----------|
+| UC01 | Create Order from Contract |
+| UC02 | Generate / update Payment Schedule |
+| UC03 | Record Payment (full or partial) |
+| UC04 | Verify Payment |
+| UC05 | Issue VAT Invoice |
+| UC06 | Calculate Commission |
+| UC07 | View Debt / outstanding |
+| UC08 | Configure commission % |
+
+## 18. Ownership Matrix
+
+| Business Object | Owner Domain | Referenced By |
+|-----------------|--------------|---------------|
+| Order | Finance | Legal (context), Communication |
+| Payment Schedule | Finance | Communication (reminders) |
+| Payment | Finance | Legal (requirement signals), Communication, Collaboration |
+| Debt | Finance | Dashboard |
+| VAT Invoice | Finance | Legal (requirement signals), Communication |
+| Commission | Finance | Collaboration (CTV visibility), Communication |
+
+## 19. Domain Event Matrix
+
+| Event | Producer | Consumers |
+|-------|----------|-----------|
+| `OrderCreated` | Finance | Communication (optional) |
+| `ScheduleUpdated` | Finance | Communication |
+| `PaymentRecorded` | Finance | Debt, Communication |
+| `PaymentCollected` / verified | Finance | Legal, Collaboration, Communication, Commission job |
+| `InvoiceIssued` | Finance | Legal, Communication |
+| `CommissionCalculated` | Finance | Collaboration, Communication |
+
+## 20. Business Constraints
+
+| Constraint |
+|------------|
+| Verified Payment cannot be casually edited — corrections via void/refund policy (Open Q) |
+| Commission cannot be recalculated from Contract fee alone |
+| Issued VAT Invoice numbering follows legal policy once locked |
+| CTV sees own commission only — never staff ledger |
+
+## 21. Dynamic Features
+
+| Feature | Stance |
+|---------|--------|
+| Commission % | Configurable; formula MVP = percentage of collected |
+| Payment methods | Cash, Bank Transfer, QR (fixed MVP set) |
+| Sepay auto-verify | Future requirement automation signal |
+
+## 22. Business Metrics
+
+| Metric | Purpose |
+|--------|---------|
+| Revenue (collected) | Business performance |
+| Outstanding Debt | Collection risk |
+| Collection rate | Schedule vs collected |
+| Invoices issued | Tax compliance volume |
+| Commission paid / accrued | Partner cost |
+
+## 23. Cross Domain Dependency
+
+| | Domains |
+|--|---------|
+| **Depends on** | Identity, LegalOperation (Contract), CRM (Customer reference) |
+| **Provides to** | Legal (payment/invoice signals), Collaboration (commission), Communication, Dashboard |
+| **Does not own** | Contract lifecycle, Customer master |

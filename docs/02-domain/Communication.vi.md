@@ -95,3 +95,89 @@ sequenceDiagram
 - [ ] Khóa event → in-app vs email  
 - [ ] Catalog notification CTV  
 - [ ] Lead time reminder (vd. 24h trước hạn)  
+
+## 15. Aggregate Boundaries
+
+| Aggregate Root | Con / thành phần | Quy tắc ranh giới |
+|----------------|------------------|-------------------|
+| **Notification** | Trạng thái đọc/lưu trữ; user nhận | Sở hữu theo inbox từng user |
+| **Reminder** | Ref nguồn (Task/Schedule), cửa sổ hạn | Ý định thông báo — không sở hữu Task/Schedule |
+| **Outbound Email log** | Template key, người nhận, trạng thái gửi | Ghi nhận gọi MailPort |
+| **Notification preference** | Tuỳ chọn theo user | Open Q về độ sâu MVP |
+
+## 16. Domain Invariants
+
+| ID | Invariant |
+|----|-----------|
+| COM-I1 | Không marketing automation trong MVP |
+| COM-I2 | Notification theo event — Communication không bịa state nghiệp vụ upstream |
+| COM-I3 | CTV chỉ nhận notification portal được phép |
+| COM-I4 | Không đưa secret vào body notification/email |
+| COM-I5 | Email qua MailPort — domain không gắn vendor |
+
+## 17. Primary Business Use Cases
+
+| ID | Use case |
+|----|----------|
+| UC01 | Tạo Notification in-app từ domain event |
+| UC02 | Đánh dấu đọc / archive Notification |
+| UC03 | Lên Reminder cho Task / Payment Schedule |
+| UC04 | Gửi Email giao dịch |
+| UC05 | Admin quản lý template email (độ sâu MVP Open Q) |
+| UC06 | Giao notification portal CTV |
+
+## 18. Ownership Matrix
+
+| Đối tượng | Domain sở hữu | Được tham chiếu bởi |
+|-----------|---------------|---------------------|
+| Notification | Communication | Mọi domain (phát event) |
+| Reminder | Communication | Legal (Task), Finance (Schedule) |
+| Outbound Email log | Communication | Monitoring |
+| Email template (nội dung nghiệp vụ) | Communication | Identity (email auth) |
+
+## 19. Domain Event Matrix
+
+| Event (tiêu thụ) | Producer | Hành động Communication |
+|------------------|----------|-------------------------|
+| `LeadAssigned` | CRM | Thông báo người được gán |
+| `ContractRequestSubmitted` | Collaboration | Thông báo reviewer |
+| `ContractStatusChanged` | Legal | Thông báo watcher / owner |
+| `TaskOverdue` | Legal | Reminder + thông báo |
+| `PaymentCollected` | Finance | Thông báo kế toán / CTV sẵn sàng hoa hồng |
+| `UserInvited` | Identity | Email mời (nếu dùng) |
+
+Communication chủ yếu là **consumer**; có thể phát tín hiệu delivery/failure cho Monitoring (không phải business domain event).
+
+## 20. Business Constraints
+
+| Ràng buộc |
+|-----------|
+| Không gửi marketing blast |
+| Email thất bại phải quan sát được (Monitoring) — không nuốt silent mail auth bắt buộc |
+| User chỉ thấy notification của mình (trừ admin manage-all) |
+| Reminder không đổi ownership Task/Payment Schedule |
+
+## 21. Dynamic Features
+
+| Tính năng | Lập trường |
+|-----------|------------|
+| Map event → kênh | Catalog cấu hình sau; danh sách MVP khóa trong TODO |
+| Template | Template giao dịch do Admin quản |
+| Kênh | In-app + Email MVP; SMS/Zalo sau |
+
+## 22. Business Metrics
+
+| Metric | Mục đích |
+|--------|----------|
+| Khối lượng giao notification | Tải hệ thống / engagement |
+| Email thất bại | Độ tin cậy |
+| Backlog chưa đọc | Rủi ro chú ý |
+| Tần suất reminder | Nhịp vận hành |
+
+## 23. Cross Domain Dependency
+
+| | Domain |
+|--|--------|
+| **Phụ thuộc** | Identity; tiêu thụ event từ CRM, Collaboration, Legal, Finance |
+| **Cung cấp cho** | User (inbox), Monitoring (sức khỏe giao) |
+| **Không sở hữu** | Vòng đời nghiệp vụ upstream |

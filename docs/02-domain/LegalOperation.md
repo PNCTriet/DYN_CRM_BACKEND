@@ -31,14 +31,18 @@ Admin configures: template, stages, stage order, stage requirements.
 
 ### Requirement type examples (configurable)
 
-| Requirement type | Meaning |
-|------------------|---------|
-| Upload Contract | Document uploaded |
-| Manual Approval | Named role/user approves |
-| Payment Completed | Signal from Finance (collected) |
-| Invoice Issued | Signal from Finance |
-| Task Completed | Linked tasks done |
-| Sepay Verification | **Future** automatic verification |
+Workflow gates are **typed requirements**, not BPMN. Admin selects types per stage; the engine only checks satisfaction — it does not run process models.
+
+| Requirement type | Meaning | MVP |
+|------------------|---------|-----|
+| File Upload | Required document(s) uploaded | Yes |
+| Manual Approval | Named role/user approves | Yes |
+| Payment Completed | Signal from Finance (collected) | Yes (signal) |
+| Invoice Issued | Signal from Finance | Yes (signal) |
+| Task Completed | Linked tasks done | Yes |
+| Signature | Contract/customer signature captured | Yes (manual/process) |
+| Custom Boolean | Admin-defined yes/no gate | Yes (simple) |
+| External Verification (e.g. Sepay) | Future automatic verification | Future |
 
 ## 4. Actors
 
@@ -214,3 +218,96 @@ flowchart LR
 - [ ] Lock Contract↔Workflow completion rule  
 - [ ] Publish default MVP template (stages + requirements)  
 - [ ] Confirm Sepay as future-only vs MVP stub  
+
+## 15. Aggregate Boundaries
+
+| Aggregate Root | Children / parts | Boundary rule |
+|----------------|------------------|---------------|
+| **Contract** | Status, parties reference (Customer), timeline | Owns official agreement lifecycle |
+| **Workflow Template** | Stages, stage requirements, order | Admin-owned configuration; instances copy/apply |
+| **Workflow Instance** | Current stage, requirement satisfaction state | Bound to one Contract (multi-instance → Open Q) |
+| **Task** | Assignee, due date, completion | Owned under Legal work context / Contract |
+| **Document metadata** | Link to Contract/work; bytes via StoragePort | Metadata ownership in Legal; storage is infrastructure |
+
+## 16. Domain Invariants
+
+| ID | Invariant |
+|----|-----------|
+| LEG-I1 | Contract cannot become **Completed** before **Signed** |
+| LEG-I2 | Workflow completion must not silently force Contract=`Completed` without locked rule |
+| LEG-I3 | Official Contract is created only by staff (never unilaterally by CTV) |
+| LEG-I4 | Stage exit requires all configured requirements satisfied (unless explicit override policy) |
+| LEG-I5 | Workflow remains configurable templates — **not** BPMN |
+| LEG-I6 | Tasks with reminders remain assignable work items, not process engines |
+
+## 17. Primary Business Use Cases
+
+| ID | Use case |
+|----|----------|
+| UC01 | Create Official Contract (optionally from approved Request) |
+| UC02 | Transition Contract status |
+| UC03 | Configure Workflow Template / stages / requirements |
+| UC04 | Start Workflow Instance on Contract |
+| UC05 | Advance stage / satisfy requirement |
+| UC06 | Create / complete Task |
+| UC07 | Upload Document |
+| UC08 | Kanban view by stages |
+| UC09 | Cancel Contract (per locked matrix) |
+
+## 18. Ownership Matrix
+
+| Business Object | Owner Domain | Referenced By |
+|-----------------|--------------|---------------|
+| Contract | LegalOperation | Finance, Collaboration, Communication |
+| Workflow Template / Instance | LegalOperation | Communication |
+| Stage Requirement | LegalOperation | Finance (signals only) |
+| Task | LegalOperation | Communication |
+| Document metadata | LegalOperation | — |
+| Contract Request | Collaboration | Legal (consumes approval) |
+
+## 19. Domain Event Matrix
+
+| Event | Producer | Consumers |
+|-------|----------|-----------|
+| `ContractCreated` | LegalOperation | Finance, Communication |
+| `ContractStatusChanged` | LegalOperation | Finance, Communication, Dashboard |
+| `WorkflowStarted` | LegalOperation | Communication |
+| `StageEntered` / `StageCompleted` | LegalOperation | Communication, Dashboard |
+| `RequirementSatisfied` | LegalOperation | Communication |
+| `TaskCreated` / `TaskCompleted` / `TaskOverdue` | LegalOperation | Communication |
+| `DocumentUploaded` | LegalOperation | Communication (optional) |
+
+## 20. Business Constraints
+
+| Constraint |
+|------------|
+| Workflow Template **in use** cannot remove stages that active instances depend on without migration policy |
+| Signed / InProgress Contract is not casually hard-deleted |
+| Cancelled Contract does not invent refund rules (Finance owns money corrections) |
+| Requirement type catalog is extendable; BPMN modeling is out of scope |
+
+## 21. Dynamic Features
+
+| Feature | Stance |
+|---------|--------|
+| Stage Requirement Types | Expandable catalog (§3) — File Upload, Manual Approval, Payment Completed, Invoice Issued, Task Completed, Signature, Custom Boolean, future External Verification |
+| Workflow Template | Admin-configurable stages/order/requirements — **not BPMN** |
+| Kanban | View of stage positions, not a separate process engine |
+
+## 22. Business Metrics
+
+| Metric | Purpose |
+|--------|---------|
+| Active Contracts | Workload / capacity |
+| Contracts by status | Pipeline of legal delivery |
+| Stage bottlenecks | Time-in-stage / blocked requirements |
+| Overdue Tasks | Delivery risk |
+| Template usage | Which workflows dominate |
+
+## 23. Cross Domain Dependency
+
+| | Domains |
+|--|---------|
+| **Depends on** | Identity, CRM (Customer), Collaboration (approved Request optional) |
+| **Provides to** | Finance (Contract readiness), Communication, Dashboard |
+| **Consumes signals from** | Finance (`PaymentCompleted`, `InvoiceIssued` as requirement inputs) |

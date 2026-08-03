@@ -97,3 +97,95 @@ flowchart TD
 
 - [x] Khóa chuỗi: Invoice **sau** Payment (2026-08-03)  
 - [ ] Khóa mô hình Debt / verify / trigger commission / đánh số HĐ  
+
+## 15. Aggregate Boundaries
+
+| Aggregate Root | Con / thành phần | Quy tắc ranh giới |
+|----------------|------------------|-------------------|
+| **Order** | Link Contract; tổng; sở hữu schedule | Order sở hữu tiền kế hoạch cho ngữ cảnh Contract |
+| **Payment Schedule** | Dòng / kỳ thanh toán | Thuộc Order |
+| **Payment** | Số tiền, phương thức, trạng thái verify | Gắn Order/Schedule; không mồ côi |
+| **Debt** | Nghĩa vụ còn lại (view và/hoặc lưu — Open Q) | Derive từ Order vs Payments |
+| **VAT Invoice** | Chứng từ thuế sau Payment | Sau Payment; có thể neo Contract/Milestone/Manual |
+| **Commission** | % tiền đã thu; người hưởng | Chỉ từ Payment đã thu |
+
+## 16. Domain Invariants
+
+| ID | Invariant |
+|----|-----------|
+| FIN-I1 | Số tiền Payment không vượt dư nợ còn lại (partial trong phần còn) |
+| FIN-I2 | Commission chỉ tính từ **tiền đã thu**, không từ giá trị Contract đơn thuần |
+| FIN-I3 | VAT Invoice phát hành **sau** Payment (chuỗi đã khóa) |
+| FIN-I4 | Order phát sinh từ Contract |
+| FIN-I5 | Payment Verified là tín hiệu collected đáng tin (Recorded vs Verified → Open Q) |
+| FIN-I6 | MVP: VND; VAT 10% exclusive |
+
+## 17. Primary Business Use Cases
+
+| ID | Use case |
+|----|----------|
+| UC01 | Tạo Order từ Contract |
+| UC02 | Tạo / cập nhật Payment Schedule |
+| UC03 | Ghi nhận Payment (đủ hoặc một phần) |
+| UC04 | Verify Payment |
+| UC05 | Phát hành VAT Invoice |
+| UC06 | Tính Commission |
+| UC07 | Xem Debt / dư nợ |
+| UC08 | Cấu hình % hoa hồng |
+
+## 18. Ownership Matrix
+
+| Đối tượng | Domain sở hữu | Được tham chiếu bởi |
+|-----------|---------------|---------------------|
+| Order | Finance | Legal (context), Communication |
+| Payment Schedule | Finance | Communication (reminder) |
+| Payment | Finance | Legal (tín hiệu), Communication, Collaboration |
+| Debt | Finance | Dashboard |
+| VAT Invoice | Finance | Legal (tín hiệu), Communication |
+| Commission | Finance | Collaboration (CTV xem), Communication |
+
+## 19. Domain Event Matrix
+
+| Event | Producer | Consumers |
+|-------|----------|-----------|
+| `OrderCreated` | Finance | Communication (tuỳ chọn) |
+| `ScheduleUpdated` | Finance | Communication |
+| `PaymentRecorded` | Finance | Debt, Communication |
+| `PaymentCollected` / verified | Finance | Legal, Collaboration, Communication, job Commission |
+| `InvoiceIssued` | Finance | Legal, Communication |
+| `CommissionCalculated` | Finance | Collaboration, Communication |
+
+## 20. Business Constraints
+
+| Ràng buộc |
+|-----------|
+| Payment Verified không sửa tùy tiện — điều chỉnh qua void/refund (Open Q) |
+| Không tính lại commission chỉ từ phí Contract |
+| Đánh số VAT Invoice theo chính sách pháp lý khi đã khóa |
+| CTV chỉ xem hoa hồng của mình — không xem sổ nhân sự |
+
+## 21. Dynamic Features
+
+| Tính năng | Lập trường |
+|-----------|------------|
+| % hoa hồng | Cấu hình được; MVP = % tiền đã thu |
+| Phương thức TT | Cash, Bank Transfer, QR (cố định MVP) |
+| Sepay auto-verify | Tín hiệu tự động hóa tương lai |
+
+## 22. Business Metrics
+
+| Metric | Mục đích |
+|--------|----------|
+| Doanh thu (đã thu) | Hiệu quả kinh doanh |
+| Dư nợ outstanding | Rủi ro thu hồi |
+| Tỷ lệ thu | Schedule vs đã thu |
+| Invoice đã phát hành | Khối lượng tuân thủ thuế |
+| Commission trả / ghi nhận | Chi phí đối tác |
+
+## 23. Cross Domain Dependency
+
+| | Domain |
+|--|--------|
+| **Phụ thuộc** | Identity, LegalOperation (Contract), CRM (tham chiếu Customer) |
+| **Cung cấp cho** | Legal (tín hiệu payment/invoice), Collaboration (commission), Communication, Dashboard |
+| **Không sở hữu** | Vòng đời Contract, master Customer |

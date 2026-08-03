@@ -58,11 +58,30 @@ flowchart LR
 | Nguồn đã khóa | Phải tôn trọng |
 |---------------|----------------|
 | Phase 00 Scope / Glossary | Lead ≠ Customer; Contract ≠ Order; hoa hồng trên **tiền đã thu** |
-| Phase 00 Scope | Portal CTV hạn chế (xem Open Questions Collaboration nếu mở rộng) |
+| Phase 00 Scope (2026-08-03) | Portal CTV hạn chế + khách được gán + Contract Request (Collaboration) |
+| Phase 00 Scope (2026-08-03) | Chuỗi Finance: Payment **trước** VAT Invoice |
 | Phase 01 Module / Security | NestJS RBAC; cô lập CTV; commission async qua worker |
 
-## 8. TODO (cấp phase)
+## 8. Mục chuẩn (tài liệu domain)
 
-- [ ] Stakeholder duyệt Open Questions từng domain  
-- [ ] Khóa lại Scope nếu năng lực CTV Collaboration hoặc thứ tự Invoice Finance đổi Phase 00  
+Mỗi tài liệu domain (`CRM`, `Collaboration`, `LegalOperation`, `Finance`, `Identity`, `Communication`) có mục **1–14** (diễn giải năng lực) và sau review có thêm mục tham chiếu kiến trúc:
+
+| § | Mục | Mục đích |
+|---|-----|----------|
+| 15 | Aggregate Boundaries | Ranh giới sở hữu nghiệp vụ (không phải bảng DB) |
+| 16 | Domain Invariants | Quy tắc không được vi phạm |
+| 17 | Primary Business Use Cases | Catalog UC ngắn |
+| 18 | Ownership Matrix | Domain nào sở hữu vòng đời đối tượng |
+| 19 | Domain Event Matrix | Producer → consumers |
+| 20 | Business Constraints | Ràng buộc nghiệp vụ (không phải kỹ thuật) |
+| 21 | Dynamic Features | Năng lực cấu hình (Identity RBAC, Legal requirements) |
+| 22 | Business Metrics | Nền cho Dashboard |
+| 23 | Cross Domain Dependency | Phụ thuộc / Cung cấp cho |
+
+`BusinessCapabilityMap` giữ vai trò bản đồ xuyên capability (không nhân đôi aggregate từng domain).
+
+## 9. TODO (cấp phase)
+
+- [ ] Stakeholder duyệt Open Questions từng domain (ưu tiên ảnh hưởng schema)  
+- [x] Khóa lại Scope: mở rộng CTV Collaboration + Invoice sau Payment (2026-08-03)  
 - [ ] Chỉ sang Phase 03 khi Open Questions ảnh hưởng schema đã đóng  

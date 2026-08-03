@@ -164,3 +164,89 @@ flowchart LR
 - [ ] Lock which events create in-app vs email  
 - [ ] Confirm CTV notification catalog  
 - [ ] Confirm reminder lead times (e.g. 24h before due)  
+
+## 15. Aggregate Boundaries
+
+| Aggregate Root | Children / parts | Boundary rule |
+|----------------|------------------|---------------|
+| **Notification** | Read/unread/archive state; recipient user | Owned per user inbox |
+| **Reminder** | Source ref (Task/Schedule), due window | Intent to notify — does not own Task/Schedule |
+| **Outbound Email log** | Template key, recipient, delivery status | Record of MailPort invocation |
+| **Notification preference** | Optional per-user settings | Open Q for MVP depth |
+
+## 16. Domain Invariants
+
+| ID | Invariant |
+|----|-----------|
+| COM-I1 | No marketing automation in MVP |
+| COM-I2 | Notifications are event-driven — Communication does not invent upstream business state |
+| COM-I3 | CTV receives only portal-allowed notifications |
+| COM-I4 | Secrets must not appear in notification/email bodies |
+| COM-I5 | Email delivery goes through MailPort — domain does not own vendor coupling |
+
+## 17. Primary Business Use Cases
+
+| ID | Use case |
+|----|----------|
+| UC01 | Create in-app Notification from domain event |
+| UC02 | Mark Notification read / archive |
+| UC03 | Schedule Reminder for Task / Payment Schedule |
+| UC04 | Send transactional Email |
+| UC05 | Admin manage email templates (MVP depth Open Q) |
+| UC06 | Deliver CTV portal notifications |
+
+## 18. Ownership Matrix
+
+| Business Object | Owner Domain | Referenced By |
+|-----------------|--------------|---------------|
+| Notification | Communication | All domains (produce events) |
+| Reminder | Communication | Legal (Task), Finance (Schedule) |
+| Outbound Email log | Communication | Monitoring |
+| Email template (business content) | Communication | Identity (auth emails) |
+
+## 19. Domain Event Matrix
+
+| Event (consumed) | Producer | Communication action |
+|-------------------|----------|----------------------|
+| `LeadAssigned` | CRM | Notify assignee |
+| `ContractRequestSubmitted` | Collaboration | Notify reviewers |
+| `ContractStatusChanged` | Legal | Notify watchers / owner |
+| `TaskOverdue` | Legal | Reminder + notify |
+| `PaymentCollected` | Finance | Notify accounting / CTV commission ready |
+| `UserInvited` | Identity | Email invite (if used) |
+
+Communication is primarily a **consumer**; it may emit delivery/failure signals for Monitoring (not business domain events).
+
+## 20. Business Constraints
+
+| Constraint |
+|------------|
+| Do not send marketing blasts |
+| Failed email must be observable (Monitoring) — no silent drop of mandatory auth mail |
+| User sees own notifications only (unless admin manage-all) |
+| Reminder does not mutate Task/Payment Schedule ownership |
+
+## 21. Dynamic Features
+
+| Feature | Stance |
+|---------|--------|
+| Event → channel mapping | Configurable catalog later; MVP list locked in TODO |
+| Templates | Admin-managed transactional templates |
+| Channels | In-app + Email MVP; SMS/Zalo later |
+
+## 22. Business Metrics
+
+| Metric | Purpose |
+|--------|---------|
+| Notification delivery volume | System load / engagement |
+| Email failures | Reliability |
+| Unread backlog | Attention risk |
+| Reminder firing rate | Operational cadence |
+
+## 23. Cross Domain Dependency
+
+| | Domains |
+|--|---------|
+| **Depends on** | Identity; consumes events from CRM, Collaboration, Legal, Finance |
+| **Provides to** | Users (inbox), Monitoring (delivery health) |
+| **Does not own** | Upstream business lifecycles |

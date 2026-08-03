@@ -183,3 +183,91 @@ flowchart TD
 - [ ] Lock referral attribution model  
 - [ ] Lock Contract Request field list & statuses  
 - [ ] Lock assigned-customer assignment rules  
+
+## 15. Aggregate Boundaries
+
+| Aggregate Root | Children / parts | Boundary rule |
+|----------------|------------------|---------------|
+| **Collaborator Profile** | Portal identity link, profile fields | Bound to Identity User with CTV role |
+| **Contract Request** | Attachments, review notes, status | Owned by Collaboration until Official Contract exists in Legal |
+| **Referral Attribution** | Link CTV ↔ Lead/Customer/Request (anchor Open Q) | Collaboration owns attribution semantics |
+| **Assigned Customer scope** | CTV ↔ Customer assignment | Visibility/write scope only — Customer master remains CRM |
+
+## 16. Domain Invariants
+
+| ID | Invariant |
+|----|-----------|
+| COL-I1 | CTV cannot create Official Contract unilaterally |
+| COL-I2 | Staff approval is mandatory between Contract Request and Official Contract |
+| COL-I3 | CTV never receives unscoped staff CRM / Legal / Finance access |
+| COL-I4 | Commission visibility for CTV is **own** only; formula owned by Finance |
+| COL-I5 | Assigned-customer access is scoped — not full Customer directory |
+
+## 17. Primary Business Use Cases
+
+| ID | Use case |
+|----|----------|
+| UC01 | CTV login / update profile |
+| UC02 | View / manage assigned customers (scoped) |
+| UC03 | Submit Contract Request |
+| UC04 | Staff review / request more info |
+| UC05 | Approve / reject Contract Request |
+| UC06 | Staff create Official Contract from approval |
+| UC07 | CTV view own commission |
+| UC08 | View own referrals (per attribution model) |
+
+## 18. Ownership Matrix
+
+| Business Object | Owner Domain | Referenced By |
+|-----------------|--------------|---------------|
+| Collaborator Profile | Collaboration | Identity |
+| Contract Request | Collaboration | LegalOperation, Communication |
+| Referral Attribution | Collaboration | CRM, Finance (context) |
+| Assigned Customer link | Collaboration | CRM (Customer master) |
+| Official Contract | LegalOperation | Collaboration (origin only) |
+| Commission | Finance | Collaboration (read visibility) |
+
+## 19. Domain Event Matrix
+
+| Event | Producer | Consumers |
+|-------|----------|-----------|
+| `ContractRequestSubmitted` | Collaboration | Legal (notify), Communication |
+| `ContractRequestApproved` | Collaboration | Legal, Communication |
+| `ContractRequestRejected` | Collaboration | Communication |
+| `OfficialContractCreatedFromRequest` | LegalOperation | Collaboration, Communication |
+| `CommissionVisibleToCtv` | Finance | Collaboration, Communication |
+
+## 20. Business Constraints
+
+| Constraint |
+|------------|
+| Approved Request does not auto-publish Official Contract without staff Legal action |
+| Rejected Request cannot silently reopen as Approved without resubmission path |
+| CTV cannot browse unassigned Customers |
+| Collaboration does not redefine commission base (collected payment) |
+
+## 21. Dynamic Features
+
+| Feature | Stance |
+|---------|--------|
+| Portal surfaces | Fixed MVP catalog (assigned customers, requests, commission, profile) |
+| Request statuses | Configurable labels later; MVP proposed set in §5.2 |
+| Attribution model | Must lock before Phase 03 (Open Q) |
+
+## 22. Business Metrics
+
+| Metric | Purpose |
+|--------|---------|
+| Active CTVs | Partner capacity |
+| Requests submitted / approved / rejected | Funnel |
+| Conversion Request → Official Contract | Partner effectiveness |
+| Commission to CTV | Partner payout volume |
+| Assigned customers per CTV | Workload balance |
+
+## 23. Cross Domain Dependency
+
+| | Domains |
+|--|---------|
+| **Depends on** | Identity, CRM (Customer), Finance (commission read), Legal (contract creation after approval) |
+| **Provides to** | Legal (approved Request), Communication |
+| **Does not own** | Official Contract, Payment, Customer master lifecycle |

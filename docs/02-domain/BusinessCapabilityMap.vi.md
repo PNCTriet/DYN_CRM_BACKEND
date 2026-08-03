@@ -194,10 +194,10 @@ flowchart BT
 ## 13. Open Questions
 
 1. Customer có phải principal login trong MVP không? (Giả định không.)  
-2. Open Questions còn lại ở CRM / LegalOperation / Finance (Cancelled, …)
+2. Open Questions còn lại ở CRM / LegalOperation / Finance / Collaboration (danh sách schema-critical trong từng doc).
 
 ## 14. TODO
 
 - [x] Đóng Invoice-vs-Payment và mở rộng Collaboration CTV (2026-08-03)  
 - [ ] Workshop stakeholder cho Open Questions còn lại  
-- [ ] Trace từng capability sang danh sách aggregate Phase 03  
+- [ ] Trace từng capability sang danh sách aggregate Phase 03 (dùng §15 Aggregate Boundaries từng domain)  

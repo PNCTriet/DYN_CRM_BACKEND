@@ -196,10 +196,10 @@ flowchart BT
 ## 13. Open Questions
 
 1. Is “Customer” ever a login principal in MVP? (Assumed no.)  
-2. Remaining domain Open Questions in CRM / LegalOperation / Finance (Cancelled matrix, etc.)
+2. Remaining domain Open Questions in CRM / LegalOperation / Finance / Collaboration (schema-critical lists in those docs).
 
 ## 14. TODO
 
 - [x] Close Invoice-vs-Payment and CTV Collaboration expansion (2026-08-03)  
 - [ ] Stakeholder workshop on remaining §13 / per-domain Open Questions  
-- [ ] Trace each capability to Phase 03 aggregate list  
+- [ ] Trace each capability to Phase 03 aggregate list (use §15 Aggregate Boundaries in each domain doc)  
