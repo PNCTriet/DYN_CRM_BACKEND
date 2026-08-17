@@ -12,8 +12,8 @@ Define the **Legal Operation** capability: official Contract lifecycle, configur
 |----------|--------------|
 | Contract statuses and transitions | Practice-area specialization packs |
 | Workflow templates, stages, requirements | Full BPMN / rule engine |
-| Tasks, documents, Kanban | Finance ledger (Finance.md) |
-| Link from approved Contract Request | CTV portal UX |
+| Tasks, documents, Kanban (configurable columns) | Finance ledger (Finance.md) |
+| Unique contract number | CTV Contract Request / portal — **SUPERSEDED 2026-08-17** |
 
 ## 3. Business Capability
 
@@ -26,8 +26,21 @@ Define the **Legal Operation** capability: official Contract lifecycle, configur
 | Tasks + due dates + assignees | Yes |
 | Documents (metadata + storage via port) | Yes |
 | Timeline / activity | Yes |
+| Unique contract number | Yes (2026-08-17) |
+| Configurable Kanban columns | Yes — **as Workflow Stages unless re-locked as Contract Status** |
 
-Admin configures: template, stages, stage order, stage requirements.
+Admin configures: template, stages, stage order, stage requirements. Authorized users may **add/edit Kanban columns**.
+
+### Contract Status vs Workflow Stage (do not collapse)
+
+| Concept | Meaning | Persistence guidance |
+|---------|---------|----------------------|
+| **Contract Status** | Legal/commercial lifecycle (Glossary labels: Draft → … → Completed / Cancelled) | Locked labels today. Making these user-configurable is a **business-rule change** — do not treat as a Prisma enum *if* stakeholders mean editable lifecycle. |
+| **Workflow Stage / Kanban column** | Operational board column | **Configurable data**, not a hard-coded Prisma enum |
+
+**OPEN (schema-critical):** Are Kanban columns **Workflow Stages** or **actual Contract lifecycle statuses**?
+
+Preferred direction until re-lock: keep Contract Status as the legal lifecycle; Kanban shows configurable **Workflow Stages**.
 
 ### Requirement type examples (configurable)
 
@@ -42,7 +55,7 @@ Workflow gates are **typed requirements**, not BPMN. Admin selects types per sta
 | Task Completed | Linked tasks done | Yes |
 | Signature | Contract/customer signature captured | Yes (manual/process) |
 | Custom Boolean | Admin-defined yes/no gate | Yes (simple) |
-| External Verification (e.g. Sepay) | Future automatic verification | Future |
+| External Verification (e.g. SePay) | Automatic verification signal | Candidate via Finance PaymentProviderPort — **OPEN** if a Legal requirement |
 
 ## 4. Actors
 
@@ -53,7 +66,7 @@ Workflow gates are **typed requirements**, not BPMN. Admin selects types per sta
 | Legal Assistant | Task/document support |
 | Manager | Oversight / approvals when configured |
 | Accounting | Provides finance signals; does not own contract text |
-| CTV | May origin via Contract Request only — no official contract create |
+| CTV | **Not an actor** unless Collaboration is re-approved (2026-08-17) |
 
 ## 5. Business Lifecycle
 
@@ -96,6 +109,7 @@ flowchart LR
 | Object | Meaning |
 |--------|---------|
 | Contract | Official legal agreement with Customer |
+| Contract number | Business identifier — **must be unique** (2026-08-17) |
 | Workflow Template | Admin-defined stage configuration |
 | Workflow Instance | Template applied to a Contract (or work context) |
 | Stage | Ordered step with entry/exit conditions |
@@ -114,26 +128,28 @@ flowchart LR
 
 ## 7. Business Rules
 
-1. Contract status labels follow Glossary / Phase 00.  
-2. Official Contract created by staff (optionally after Collaboration approval).  
-3. Workflow configurable by Admin — no BPMN engine (Phase 00).  
+1. Contract status labels follow Glossary / Phase 00 **until** stakeholders re-lock them as configurable (see Kanban Open Question).  
+2. Official Contract is created by staff. Contract Request origin is **not** in MVP unless Collaboration is restored.  
+3. Workflow configurable by authorized users — no BPMN engine (Phase 00). Kanban columns are **data**, not a hard-coded enum.  
 4. Tasks support Assignee, Due Date, Reminder (Phase 00).  
 5. File bytes via StoragePort; Legal owns metadata for contract/work files (Phase 01 Module).  
-6. Sepay Verification is a requirement **type placeholder** for future — not MVP automation unless Scope adds it.  
-7. Do not silently set Contract=`Completed` when workflow tasks finish without a locked rule.
+6. SePay is a Finance **PaymentProviderPort** concern; Legal may consume a verification signal as a requirement type — not a SePay SDK.  
+7. Do not silently set Contract=`Completed` when workflow tasks finish without a locked rule.  
+8. **Contract number must not be duplicated.** Database uniqueness is mandatory; application-only checks are **not** sufficient. Duplicate attempt is **rejected** (business error). Numbering algorithm (manual vs generated) is **OPEN** — do not invent one.
 
 ## 8. Permission Matrix
 
-| Permission (illustrative) | Admin | Lawyer | Legal Assistant | Manager | CTV |
-|---------------------------|-------|--------|-----------------|---------|-----|
-| `workflow_template.manage` | Y | N | N | Open Q | N |
-| `contract.read` | Y | Y | Y | Y | N |
-| `contract.write` | Y | Y | Limited | Open Q | N |
-| `contract.approve` / status transition | Policy | Y | Limited | Y | N |
-| `task.write` | Y | Y | Y | Y | N |
-| `document.upload` | Y | Y | Y | Y | Request only* |
+| Permission (illustrative) | Admin | Lawyer | Legal Assistant | Manager |
+|---------------------------|-------|--------|-----------------|---------|
+| `workflow_template.manage` | Y | N | N | Open Q |
+| `kanban_column.configure` | Y | Open Q | N | Open Q |
+| `contract.read` | Y | Y | Y | Y |
+| `contract.write` | Y | Y | Limited | Open Q |
+| `contract.approve` / status transition | Policy | Y | Limited | Y |
+| `task.write` | Y | Y | Y | Y |
+| `document.upload` | Y | Y | Y | Y |
 
-\*CTV attachments on Contract Request belong to Collaboration until promoted.
+CTV contract-request attachments are **out** unless Collaboration is restored.
 
 ## 9. Business Events
 
@@ -151,20 +167,21 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  COL[Collaboration] -->|approved_request| LEG[LegalOperation]
-  CRM[CRM] -->|Customer| LEG
+  CRM[CRM] -->|Customer| LEG[LegalOperation]
   LEG -->|Signed_or_active| FIN[Finance]
   FIN -->|Payment_Invoice_signals| LEG
   LEG --> COM[Communication]
   LEG --> ID[Identity]
 ```
 
+> Collaboration → Legal handoff is **not** in the implementation path unless S6 is reversed.
+
 ## 11. Future Extension
 
 | Item | Notes |
 |------|-------|
 | Practice-area templates | Labor, Civil, Business, IP, Litigation |
-| Sepay auto verification | Requirement automation |
+| SePay auto verification | Finance PaymentProviderPort; optional Legal requirement |
 | Court/litigation calendars | Out of MVP |
 
 ## 12. Mermaid Diagrams
@@ -205,25 +222,36 @@ flowchart LR
 
 ## 13. Open Questions
 
-1. Final Cancelled transition matrix from each status?  
-2. Rule linking Contract `Completed` to workflow completion (mandatory tasks vs manager override)?  
-3. Which finance signals are first-class requirements in MVP templates?  
-4. Default template for “general legal consulting”?  
-5. Can multiple workflow instances exist per Contract?  
-6. Document retention / versioning policy?
+### Schema-critical
+
+1. **Are Kanban columns Workflow Stages or actual Contract lifecycle statuses?**  
+2. If Contract Status itself must be configurable, confirm this as a **business-rule change** to Glossary §4.3.  
+3. Contract number: **manual entry** vs **generated**? (Uniqueness is locked.)  
+4. Final Cancelled transition matrix from each status?  
+5. Rule linking Contract `Completed` to workflow completion (mandatory tasks vs manager override)?  
+6. Can multiple workflow instances exist per Contract?
+
+### Non-schema-critical
+
+7. Which finance signals are first-class requirements in MVP templates?  
+8. Default template for “general legal consulting”?  
+9. Document retention / versioning policy?
 
 ## 14. TODO
 
+- [ ] Lock Kanban = Stage vs Status  
+- [ ] Lock contract-number allocation (manual vs generated)  
 - [ ] Lock Cancelled matrix  
 - [ ] Lock Contract↔Workflow completion rule  
 - [ ] Publish default MVP template (stages + requirements)  
-- [ ] Confirm Sepay as future-only vs MVP stub  
+- [x] Unique contract number invariant (2026-08-17)  
+- [x] Configurable Kanban columns (data, not Prisma enum) — pending Stage vs Status lock  
 
 ## 15. Aggregate Boundaries
 
 | Aggregate Root | Children / parts | Boundary rule |
 |----------------|------------------|---------------|
-| **Contract** | Status, parties reference (Customer), timeline | Owns official agreement lifecycle |
+| **Contract** | Status, **unique contract number**, parties reference (Customer), timeline | Owns official agreement lifecycle |
 | **Workflow Template** | Stages, stage requirements, order | Admin-owned configuration; instances copy/apply |
 | **Workflow Instance** | Current stage, requirement satisfaction state | Bound to one Contract (multi-instance → Open Q) |
 | **Task** | Assignee, due date, completion | Owned under Legal work context / Contract |
@@ -235,18 +263,19 @@ flowchart LR
 |----|-----------|
 | LEG-I1 | Contract cannot become **Completed** before **Signed** |
 | LEG-I2 | Workflow completion must not silently force Contract=`Completed` without locked rule |
-| LEG-I3 | Official Contract is created only by staff (never unilaterally by CTV) |
+| LEG-I3 | Official Contract is created only by staff |
 | LEG-I4 | Stage exit requires all configured requirements satisfied (unless explicit override policy) |
 | LEG-I5 | Workflow remains configurable templates — **not** BPMN |
 | LEG-I6 | Tasks with reminders remain assignable work items, not process engines |
+| LEG-I7 | **Contract number is unique** — duplicate create/update is rejected |
 
 ## 17. Primary Business Use Cases
 
 | ID | Use case |
 |----|----------|
-| UC01 | Create Official Contract (optionally from approved Request) |
+| UC01 | Create Official Contract (staff) |
 | UC02 | Transition Contract status |
-| UC03 | Configure Workflow Template / stages / requirements |
+| UC03 | Configure Workflow Template / stages / Kanban columns / requirements |
 | UC04 | Start Workflow Instance on Contract |
 | UC05 | Advance stage / satisfy requirement |
 | UC06 | Create / complete Task |
@@ -258,12 +287,11 @@ flowchart LR
 
 | Business Object | Owner Domain | Referenced By |
 |-----------------|--------------|---------------|
-| Contract | LegalOperation | Finance, Collaboration, Communication |
+| Contract | LegalOperation | Finance, Communication |
 | Workflow Template / Instance | LegalOperation | Communication |
 | Stage Requirement | LegalOperation | Finance (signals only) |
 | Task | LegalOperation | Communication |
 | Document metadata | LegalOperation | — |
-| Contract Request | Collaboration | Legal (consumes approval) |
 
 ## 19. Domain Event Matrix
 
@@ -285,14 +313,15 @@ flowchart LR
 | Signed / InProgress Contract is not casually hard-deleted |
 | Cancelled Contract does not invent refund rules (Finance owns money corrections) |
 | Requirement type catalog is extendable; BPMN modeling is out of scope |
+| Duplicate contract number is rejected at persistence, not only in the UI |
 
 ## 21. Dynamic Features
 
 | Feature | Stance |
 |---------|--------|
 | Stage Requirement Types | Expandable catalog (§3) — File Upload, Manual Approval, Payment Completed, Invoice Issued, Task Completed, Signature, Custom Boolean, future External Verification |
+| Kanban columns | Configurable by authorized users — persist as Stage **data**; do **not** use a Prisma enum for column names |
 | Workflow Template | Admin-configurable stages/order/requirements — **not BPMN** |
-| Kanban | View of stage positions, not a separate process engine |
 
 ## 22. Business Metrics
 
@@ -308,6 +337,6 @@ flowchart LR
 
 | | Domains |
 |--|---------|
-| **Depends on** | Identity, CRM (Customer), Collaboration (approved Request optional) |
+| **Depends on** | Identity, CRM (Customer) |
 | **Provides to** | Finance (Contract readiness), Communication, Dashboard |
 | **Consumes signals from** | Finance (`PaymentCompleted`, `InvoiceIssued` as requirement inputs) |

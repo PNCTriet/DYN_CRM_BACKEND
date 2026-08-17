@@ -2,6 +2,8 @@
 
 > Bản tiếng Việt của [Identity.md](./Identity.md). Canonical: English.
 
+**2026-08-17:** Role `COLLABORATOR` **không giả định** trừ khi S6 đảo. Người duyệt Chi (“Nhi”) **chưa** là role Glossary — map User/Role/permission **OPEN**; không hard-code tên người trong domain.
+
 ## 1. Mục đích
 
 Định nghĩa năng lực **Identity**: user, subject xác thực, role, permission, permission group, và điểm mở rộng Organization/Department (**chưa chốt** cấu trúc tổ chức).
@@ -94,7 +96,8 @@ erDiagram
 ## 13. Open Questions
 
 1. Provision nhân sự: chỉ invite admin?  
-2. Provision CTV?  
+2. Role `COLLABORATOR` có gỡ khỏi MVP không? (schema-critical với S6)  
+7. “Nhi” duyệt Chi: User định danh, Role, hay chỉ gán permission?  
 3. Cho phép custom role ngoài 8 role Glossary trong MVP?  
 4. Permission Group bắt buộc hay gắn trực tiếp role?  
 5. Field org/department dự trữ?  

@@ -54,8 +54,12 @@ CRM văn phòng luật trộn ngôn ngữ CRM (Lead, Customer), pháp lý (Contr
 | VAT | Thuế GTGT | Thuế GTGT | MVP: 10% exclusive |
 | Exclusive VAT | Thuế cộng trên số net | Chưa bao gồm thuế | Đã khóa MVP |
 | Commission | Số hoa hồng tính từ tiền đã thu | Hoa hồng | % cấu hình được |
-| Collaborator / CTV | Đối tác giới thiệu ngoài | CTV / Cộng tác viên | Portal hạn chế |
-| CTV Portal | Bề mặt app hạn chế cho CTV | Cổng CTV | Không full CRM |
+| Collaborator / CTV | Đối tác giới thiệu ngoài (lịch sử) | CTV / Cộng tác viên | **SUPERSEDED portal 2026-08-17** — tiền qua Finance thu/chi hoặc note |
+| CTV Portal | Bề mặt app hạn chế cho CTV | Cổng CTV | **Không implement** trừ khi S6 đảo |
+| Income / Thu | Tab thu (khái niệm) | Thu | Lưu trữ **OPEN** |
+| Expense / Chi | Tab chi; cần duyệt | Chi | Lưu trữ **OPEN** |
+| Order validity | Thời hạn dịch vụ/đơn hàng | Thời hạn đơn hàng | Alert N tháng cấu hình được |
+| Contract number | Định danh nghiệp vụ hợp đồng | Số hợp đồng | **Duy nhất** (ràng buộc DB) |
 | Workflow Template | Cấu hình stage do admin định nghĩa | Mẫu quy trình | Không BPMN MVP |
 | Workflow | Instance template trên ngữ cảnh công việc | Quy trình | |
 | Task | Đơn vị công việc trong workflow | Công việc | Assignee, hạn |
@@ -97,7 +101,7 @@ CRM văn phòng luật trộn ngôn ngữ CRM (Lead, Customer), pháp lý (Contr
 | Legal Assistant | `LEGAL_ASSISTANT` |
 | Accounting | `ACCOUNTING` |
 | Sales | `SALES` |
-| Collaborator (CTV) | `COLLABORATOR` |
+| Collaborator (CTV) | `COLLABORATOR` | **Chờ gỡ** cùng S6 — không seed trừ khi khôi phục |
 
 ### 4.5 Phương thức thanh toán (MVP)
 
@@ -109,7 +113,7 @@ CRM văn phòng luật trộn ngôn ngữ CRM (Lead, Customer), pháp lý (Contr
 
 ### 4.6 Chuỗi tài chính (cụm từ chuẩn)
 
-**Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice → Commission**
+**Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice** (→ Commission **chỉ nếu khóa lại**)
 
 (Hóa đơn VAT phát hành **sau** Payment.)
 

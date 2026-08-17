@@ -53,8 +53,12 @@ Law-firm CRM mixes CRM language (Lead, Customer) with legal (Contract) and accou
 | VAT | Value-added tax | Thuế GTGT | MVP: 10% exclusive |
 | Exclusive VAT | Tax added on top of net amount | Chưa bao gồm thuế | Locked MVP |
 | Commission | Amount calculated from collected payment | Hoa hồng | % configurable |
-| Collaborator / CTV | External referral partner | CTV / Cộng tác viên | Restricted portal |
-| CTV Portal | Limited app surface for CTV | Cổng CTV | Not full CRM |
+| Collaborator / CTV | External referral partner (historical) | CTV / Cộng tác viên | **SUPERSEDED as portal actor 2026-08-17** — money via Finance thu/chi or note |
+| CTV Portal | Limited app surface for CTV | Cổng CTV | **Do not implement** unless S6 reversed |
+| Income / Thu | Staff finance income tab (conceptual) | Thu | Persistence **OPEN** |
+| Expense / Chi | Staff finance expense tab; requires approval | Chi | Persistence **OPEN** |
+| Order validity | Service/order start–end period | Thời hạn đơn hàng | Alert N months configurable |
+| Contract number | Business identifier of a Contract | Số hợp đồng | **Unique** (DB constraint) |
 | Workflow Template | Admin-defined stage configuration | Mẫu quy trình | No BPMN in MVP |
 | Workflow | Instance of a template on a work context | Quy trình | |
 | Task | Unit of work in a workflow | Công việc | Assignee, due date |
@@ -96,7 +100,7 @@ Law-firm CRM mixes CRM language (Lead, Customer) with legal (Contract) and accou
 | Legal Assistant | `LEGAL_ASSISTANT` |
 | Accounting | `ACCOUNTING` |
 | Sales | `SALES` |
-| Collaborator (CTV) | `COLLABORATOR` |
+| Collaborator (CTV) | `COLLABORATOR` | **Pending removal** with S6 — do not seed unless restored |
 
 ### 4.5 Payment methods (MVP)
 
@@ -108,7 +112,7 @@ Law-firm CRM mixes CRM language (Lead, Customer) with legal (Contract) and accou
 
 ### 4.6 Finance chain (canonical phrase)
 
-**Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice → Commission**
+**Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice** (→ Commission **only if re-locked**)
 
 (Invoice is issued **after** Payment.)
 
@@ -168,6 +172,7 @@ Law-firm CRM mixes CRM language (Lead, Customer) with legal (Contract) and accou
 
 ## TODO
 
+- [ ] Confirm `COLLABORATOR` term/role after S6 re-lock  
 - [ ] Confirm final Vietnamese labels with product owner (table 4.2 hints)
 - [ ] Confirm Lead status enum beyond “Qualified” concept
 - [ ] Confirm Order Vietnamese label (Đơn hàng vs alternative firm language)

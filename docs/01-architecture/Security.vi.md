@@ -5,7 +5,9 @@
 
 ## 1. Mục đích
 
-Định nghĩa kiến trúc bảo mật DYN CRM: authentication (NestJS BFF + Supabase Auth), authorization (NestJS RBAC + permission), ánh xạ identity, hợp đồng session, cô lập CTV, và audit tối thiểu — không kê code triển khai và không bịa permission domain chưa khóa.
+Định nghĩa kiến trúc bảo mật DYN CRM: authentication (NestJS BFF + Supabase Auth), authorization (NestJS RBAC + permission), ánh xạ identity, hợp đồng session, và audit tối thiểu — không kê code triển khai và không bịa permission domain chưa khóa.
+
+**2026-08-17:** Cô lập portal CTV **không** còn là yêu cầu implement trừ khi S6 đảo. Unknown permission ⇒ deny và user deactivated vẫn áp dụng.
 
 ## 2. Phạm vi
 

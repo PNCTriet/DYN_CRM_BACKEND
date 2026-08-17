@@ -22,9 +22,9 @@ Provide a single map of business capabilities, end-to-end value streams, and dom
 |------------|----------|-------------------------|
 | Identity & access | Identity.md | Identity |
 | CRM acquisition & customer master | CRM.md | CRM |
-| Collaborator (CTV) partnership | Collaboration.md | Commission (+ Legal for requests) |
+| Collaborator (CTV) partnership | Collaboration.md | **SUPERSEDED 2026-08-17** — not a Phase 03 module |
 | Legal delivery | LegalOperation.md | Legal |
-| Money & commission | Finance.md | Finance + Commission |
+| Money (thu/chi, payment, invoice) | Finance.md | Finance |
 | Notifications & email | Communication.md | System |
 
 ### 3.2 Capability map
@@ -33,9 +33,6 @@ Provide a single map of business capabilities, end-to-end value streams, and dom
 flowchart TB
   subgraph acquire [Acquire]
     CRM[CRM]
-  end
-  subgraph partner [Partner]
-    COL[Collaboration_CTV]
   end
   subgraph deliver [Deliver]
     LEG[LegalOperation]
@@ -50,18 +47,16 @@ flowchart TB
     COM[Communication]
   end
   ID --> CRM
-  ID --> COL
   ID --> LEG
   ID --> FIN
   CRM --> LEG
-  COL --> LEG
   LEG --> FIN
-  FIN --> COL
   CRM --> COM
   LEG --> COM
   FIN --> COM
-  COL --> COM
 ```
+
+Collaboration/CTV is **not** on the implementation map until S6 is reversed.
 
 ## 4. Actors (platform-level)
 
@@ -72,7 +67,7 @@ flowchart TB
 | Sales | Internal | CRM |
 | Lawyer / Legal Assistant | Internal | LegalOperation |
 | Accounting | Internal | Finance |
-| Collaborator (CTV) | External partner | Collaboration portal (see Open Questions vs Phase 00) |
+| Collaborator (CTV) | External | **Not a login actor** unless S6 reversed; money via Finance thu/chi or note |
 | Customer (party) | External | Not a system login in MVP unless later decided |
 
 ## 5. Business Lifecycle — platform value chain
@@ -80,28 +75,26 @@ flowchart TB
 ```mermaid
 flowchart LR
   Lead[Lead] --> Customer[Customer]
-  Customer --> ContractReq[Contract_Request_optional_CTV]
-  ContractReq --> Contract[Official_Contract]
-  Customer --> Contract
+  Customer --> Contract[Official_Contract]
   Contract --> Workflow[Configurable_Workflow]
   Contract --> Order[Order]
   Order --> Schedule[Payment_Schedule]
   Schedule --> Payment[Payment]
   Payment --> Debt[Debt_view]
   Payment --> Invoice[VAT_Invoice]
-  Payment --> Commission[Commission]
+  Order --> Expiry[Order_expiry_alert]
+  Invoice --> InvAlert[Invoice_alert]
 ```
 
-> **Locked finance chain (2026-08-03):** Contract → Order → Payment Schedule → Payment → Debt → **VAT Invoice** → Commission. Invoice is issued **after** Payment. Commission base remains **collected payment**. CTV Collaboration expansion (assigned customers + Contract Request) is **locked**.
+> **Locked (2026-08-03):** Invoice **after** Payment. **2026-08-17:** CTV Collaboration expansion **SUPERSEDED**. Commission / CTV portal **not** on this chain until re-locked. Thu/Chi tabs sit in Finance (model OPEN).
 
 ## 6. Main Business Objects (cross-domain)
 
 | Object | Owning capability |
 |--------|-------------------|
 | Lead, Customer, Contact | CRM |
-| Contract Request | Collaboration |
 | Contract, Workflow, Task, Document | LegalOperation |
-| Order, Payment Schedule, Payment, Debt, VAT Invoice, Commission | Finance |
+| Order, Payment Schedule, Payment, Debt, VAT Invoice, Thu/Chi (OPEN) | Finance |
 | User, Role, Permission | Identity |
 | Notification, Reminder, Email message | Communication |
 
@@ -109,21 +102,21 @@ flowchart LR
 
 1. Glossary English terms are canonical in all domain docs.  
 2. Lead is a separate entity from Customer (Phase 00).  
-3. Official Contract is created by staff — not unilaterally by CTV (Collaboration).  
-4. Commission calculates from **actual collected payment** only (Phase 00).  
-5. Workflow is template-based, not BPMN (Phase 00 / 01).  
-6. Authorization is NestJS RBAC with `resource.action` permissions (Phase 01).
+3. Official Contract is created by staff. CTV portal / Contract Request is **not** MVP unless S6 reversed.  
+4. Invoice after Payment (Phase 00). Commission only if re-locked.  
+5. Workflow is template-based, not BPMN; Kanban columns are configurable **data**.  
+6. Authorization is NestJS RBAC with `resource.action` permissions (Phase 01).  
+7. Contract number is unique.
 
 ## 8. Permission Matrix (capability-level)
 
 | Capability | Staff roles (typical) | CTV |
 |------------|----------------------|-----|
-| CRM | Sales, Manager, Admin, Lawyer (read as needed) | Assigned customers only (scoped portal) |
-| Collaboration portal | — | Yes (limited) |
-| LegalOperation | Lawyer, Legal Assistant, Manager, Admin | No official contract create |
-| Finance | Accounting, Manager, Admin | Commission view own only |
-| Identity | Admin, Super Admin | Profile self only |
-| Communication | System-driven + role inboxes | Own notifications |
+| CRM | Sales, Manager, Admin, Lawyer (read as needed) | N/A (portal removed) |
+| LegalOperation | Lawyer, Legal Assistant, Manager, Admin | N/A |
+| Finance | Accounting, Manager, Admin, Chi approver | N/A |
+| Identity | Admin, Super Admin | N/A |
+| Communication | System-driven + role inboxes | N/A |
 
 Detailed matrices live inside each domain doc.
 
@@ -132,9 +125,10 @@ Detailed matrices live inside each domain doc.
 | Event | From | To |
 |-------|------|-----|
 | LeadConverted | CRM | Legal / Communication |
-| ContractRequestSubmitted | Collaboration | Legal / Communication |
 | ContractSigned | Legal | Finance / Communication |
-| PaymentCollected | Finance | Finance(Commission) / Communication |
+| PaymentCollected | Finance | Communication |
+| InvoiceIssued | Finance | Communication |
+| OrderExpiringSoon | Finance | Communication |
 | WorkflowStageCompleted | Legal | Communication |
 | TaskOverdue | Legal | Communication |
 
@@ -147,29 +141,27 @@ See §3.2 and each domain §10. Infrastructure (AuthPort, StoragePort, QueuePort
 | Extension | Notes |
 |-----------|-------|
 | Practice-area packs | Labor, Civil, Business, IP, Litigation |
-| Sepay automatic payment verification | Finance / Legal stage requirement |
+| SePay via PaymentProviderPort | Finance MVP **candidate** (boundary OPEN) |
 | Multi-tenant | Identity + all masters |
 | Marketing automation | Explicitly out — Communication stays transactional |
 
 ## 12. Mermaid Diagrams
 
-### 12.1 Swimlane E2E (staff vs CTV)
+### 12.1 Swimlane E2E (staff)
 
 ```mermaid
 sequenceDiagram
   participant Sales
-  participant CTV
   participant Legal
   participant Accounting
   Sales->>Sales: Import_or_create_Lead
   Sales->>Sales: Convert_to_Customer
-  CTV->>Legal: Contract_Request
-  Legal->>Legal: Review_Approve_Official_Contract
+  Legal->>Legal: Official_Contract
   Legal->>Legal: Start_Workflow
-  Accounting->>Accounting: Order_Schedule_Payment
-  Accounting->>Accounting: Commission_on_collected
-  CTV->>CTV: View_own_commission
+  Accounting->>Accounting: Order_Schedule_Payment_Invoice
 ```
+
+CTV swimlane removed pending S6 re-lock.
 
 ### 12.2 Domain dependency (acyclic intent)
 
@@ -178,28 +170,24 @@ flowchart BT
   COM[Communication]
   FIN[Finance]
   LEG[LegalOperation]
-  COL[Collaboration]
   CRM[CRM]
   ID[Identity]
   FIN --> LEG
   LEG --> CRM
-  COL --> CRM
-  COL --> LEG
-  FIN --> COL
   CRM --> ID
   LEG --> ID
   FIN --> ID
-  COL --> ID
   COM --> ID
 ```
 
 ## 13. Open Questions
 
 1. Is “Customer” ever a login principal in MVP? (Assumed no.)  
-2. Remaining domain Open Questions in CRM / LegalOperation / Finance / Collaboration (schema-critical lists in those docs).
+2. Schema-critical lists: see OVERVIEW.md and each domain §13 (CTV S6, Thu/Chi, Kanban Stage vs Status, SePay, Order dates/statuses, Customer date).
 
 ## 14. TODO
 
-- [x] Close Invoice-vs-Payment and CTV Collaboration expansion (2026-08-03)  
-- [ ] Stakeholder workshop on remaining §13 / per-domain Open Questions  
-- [ ] Trace each capability to Phase 03 aggregate list (use §15 Aggregate Boundaries in each domain doc)  
+- [x] Close Invoice-vs-Payment (2026-08-03)  
+- [x] Record CTV Collaboration expansion **SUPERSEDED** (2026-08-17)  
+- [ ] Stakeholder re-lock 2026-08-17 items  
+- [ ] Trace each capability to Phase 03 aggregate list (skip Collaboration unless restored)  

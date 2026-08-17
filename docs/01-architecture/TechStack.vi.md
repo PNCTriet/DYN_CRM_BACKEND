@@ -68,6 +68,9 @@ Stack sản phẩm Phase 00 (thư viện UI, validation) giữ nguyên: Tailwind
 | MailPort | Resend | Template provider như bất biến domain |
 | CachePort | Redis | Lệnh Redis trong domain |
 | QueuePort | BullMQ | Type thư viện queue trong thiết kế payload domain event (ưu tiên DTO thuần) |
+| PaymentProviderPort | Adapter SePay **candidate** | Type SDK SePay trong domain Finance |
+
+**2026-08-17:** Docker Compose local có thể chạy Redis + MinIO (adapter StoragePort). Không tự thay production Vercel + Railway + Supabase trừ khi khóa lại Deployment.
 
 ### AD-T3 — Ngôn ngữ
 

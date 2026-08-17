@@ -2,6 +2,8 @@
 
 > Bản tiếng Việt của [Communication.md](./Communication.md). Canonical: English.
 
+**2026-08-17:** Alert hóa đơn (`InvoiceIssued`; `InvoiceDueSoon` chỉ nếu có hạn; `InvoiceOverdue` OPEN). Alert hết hạn Order (N tháng, cấu hình). Finance/Legal **không** gửi notification — chỉ emit event. Inbox portal CTV **gỡ** trừ khi Collaboration khôi phục.
+
 ## 1. Mục đích
 
 Định nghĩa năng lực **Communication**: notification/reminder/cảnh báo workflow nội bộ và email transactional bên ngoài — **không** marketing automation.
@@ -93,8 +95,9 @@ sequenceDiagram
 
 - [ ] Khóa danh sách template email MVP  
 - [ ] Khóa event → in-app vs email  
-- [ ] Catalog notification CTV  
-- [ ] Lead time reminder (vd. 24h trước hạn)  
+- [ ] Khóa người nhận alert hóa đơn + hết hạn Order (in-app vs email)  
+- [x] Catalog notification CTV — gỡ trừ khi S6 đảo (2026-08-17)  
+- [ ] Lead time reminder (task vd. 24h; Order expiry = N tháng từ config Finance)  
 
 ## 15. Aggregate Boundaries
 
@@ -111,7 +114,7 @@ sequenceDiagram
 |----|-----------|
 | COM-I1 | Không marketing automation trong MVP |
 | COM-I2 | Notification theo event — Communication không bịa state nghiệp vụ upstream |
-| COM-I3 | CTV chỉ nhận notification portal được phép |
+| COM-I3 | Không đưa secret vào body notification/email |
 | COM-I4 | Không đưa secret vào body notification/email |
 | COM-I5 | Email qua MailPort — domain không gắn vendor |
 

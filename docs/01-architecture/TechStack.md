@@ -64,10 +64,13 @@ Phase 00 product stack (UI libraries, validation) remains: Tailwind, Shadcn UI, 
 | Port | MVP technology | Must not leak into domain |
 |------|----------------|---------------------------|
 | AuthPort | Supabase Auth SDK / Admin APIs used only in adapter | Supabase client types in domain entities |
-| StoragePort | Supabase Storage | Bucket SDK calls in domain services |
+| StoragePort | Supabase Storage (+ MinIO adapter for local/dev) | Bucket SDK calls in domain services |
 | MailPort | Resend | Provider templates as domain invariants |
 | CachePort | Redis | Redis commands in domain |
-| QueuePort | BullMQ | Queue library types in domain events payload design (prefer plain DTOs) |
+| QueuePort | BullMQ | Queue library types in domain event payloads (prefer plain DTOs) |
+| PaymentProviderPort | SePay adapter **candidate** | SePay SDK types in Finance domain |
+
+**2026-08-17 implementation foundation:** local **Docker Compose** may run Redis and **MinIO** (StoragePort adapter) for development. This does **not** by itself replace production Vercel + Railway + Supabase unless Scope/Deployment are re-locked. MinIO in production MVP remains a StoragePort option, not a silent swap.
 
 ### AD-T3 — Language
 

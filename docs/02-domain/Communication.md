@@ -22,7 +22,7 @@ Define the **Communication** capability: internal notifications/reminders/workfl
 | Capability | Trigger examples |
 |------------|------------------|
 | Notification | Assignment, request status, payment recorded |
-| Reminder | Task due, payment schedule due |
+| Reminder | Task due, payment schedule due, **Order expiring (N months)**, **invoice alert** |
 | Workflow notification | Stage entered, requirement blocked |
 
 ### External
@@ -36,9 +36,10 @@ Define the **Communication** capability: internal notifications/reminders/workfl
 
 | Actor | Inbox |
 |-------|-------|
-| All authenticated users | Own notifications |
-| CTV | Own portal notifications only |
+| All authenticated staff | Own notifications |
 | System / Worker | Emits messages via events |
+
+CTV portal inbox is **out** unless Collaboration is restored (2026-08-17).
 
 Customers are **not** assumed to have logins in MVP (BusinessCapabilityMap Open Question).
 
@@ -75,37 +76,42 @@ flowchart TD
 ## 7. Business Rules
 
 1. No marketing automation in MVP (brief).  
-2. Notifications are event-driven from CRM / Collaboration / Legal / Finance / Identity.  
-3. Reminders support Workflow tasks and may support payment schedule dues (Finance).  
+2. Notifications are event-driven from CRM / Legal / Finance / Identity (Collaboration only if restored).  
+3. Reminders support Workflow tasks, payment schedule dues, **Order expiration (configurable N months)**, and **invoice alerts**.  
 4. Email goes through MailPort (Resend adapter) — domain does not couple to vendor (Phase 01).  
-5. CTV only receives notifications allowed by portal permissions.  
-6. Do not put secrets in email/notification bodies.
+5. Do not put secrets in email/notification bodies.  
+6. Finance and Legal **must not** implement notification delivery — they emit events only.
 
 ## 8. Permission Matrix
 
-| Permission (illustrative) | All users | Admin | CTV |
-|---------------------------|-----------|-------|-----|
-| `notification.read_own` | Y | Y | Y |
-| `notification.manage_all` | N | Y | N |
-| `email.template.manage` | N | Y | N |
+| Permission (illustrative) | All users | Admin |
+|---------------------------|-----------|-------|
+| `notification.read_own` | Y | Y |
+| `notification.manage_all` | N | Y |
+| `email.template.manage` | N | Y |
 
 ## 9. Business Events (consumed)
 
 | Upstream event | Communication action |
 |----------------|----------------------|
 | `LeadAssigned` | Notify assignee |
-| `ContractRequestSubmitted` | Notify reviewers |
 | `ContractStatusChanged` | Notify watchers / owner |
 | `TaskOverdue` | Reminder + notify assignee |
-| `PaymentCollected` | Notify accounting / CTV commission ready |
+| `PaymentCollected` | Notify accounting |
+| `InvoiceIssued` | Invoice alert (CONFIRMED capability) |
+| `InvoiceDueSoon` | **Only if** invoice due date exists |
+| `InvoiceOverdue` | **OPEN** whether required |
+| `OrderExpiringSoon` | Staff alert N months before Order `serviceEnd` |
+| `ExpenseSubmitted` | Notify Chi approver (“Nhi” mapping OPEN) |
 | `UserInvited` | Email invite (if used) |
+
+`ContractRequestSubmitted` is **not** consumed unless Collaboration is restored.
 
 ## 10. Interaction with Other Domains
 
 ```mermaid
 flowchart TB
   CRM --> COM[Communication]
-  COL[Collaboration] --> COM
   LEG[LegalOperation] --> COM
   FIN[Finance] --> COM
   ID[Identity] --> COM
@@ -152,18 +158,27 @@ flowchart LR
 
 ## 13. Open Questions
 
-1. Which emails are mandatory in MVP (auth only vs payment receipts vs request updates)?  
-2. User notification preferences in MVP or later?  
-3. Are Customers emailed without portal accounts?  
-4. Retention period for notifications?  
-5. Real-time transport (polling vs websocket) — implementation choice; prefer Open Question only if product cares.
+### Schema-critical (light)
+
+1. Persist reminder rows for Order expiry and invoice due, or compute from source dates at job time? (affects Reminder table vs job-only)
+
+### Non-schema-critical
+
+2. Which emails are mandatory in MVP (auth only vs payment receipts vs invoice/expiry alerts)?  
+3. User notification preferences in MVP or later?  
+4. Are Customers emailed without portal accounts?  
+5. Retention period for notifications?  
+6. Who receives invoice alerts and Order-expiry alerts? In-app vs email?  
+7. Is `InvoiceOverdue` required? Is the due-soon threshold configurable?  
+8. Real-time transport (polling vs websocket) — implementation choice unless product cares.
 
 ## 14. TODO
 
 - [ ] Lock MVP email template list with product  
 - [ ] Lock which events create in-app vs email  
-- [ ] Confirm CTV notification catalog  
-- [ ] Confirm reminder lead times (e.g. 24h before due)  
+- [ ] Lock invoice + Order-expiry alert recipients and thresholds  
+- [x] Drop CTV portal notification catalog unless Collaboration restored (2026-08-17)  
+- [ ] Confirm reminder lead times (tasks e.g. 24h; Order expiry = N months from Finance config)  
 
 ## 15. Aggregate Boundaries
 
@@ -180,9 +195,9 @@ flowchart LR
 |----|-----------|
 | COM-I1 | No marketing automation in MVP |
 | COM-I2 | Notifications are event-driven — Communication does not invent upstream business state |
-| COM-I3 | CTV receives only portal-allowed notifications |
-| COM-I4 | Secrets must not appear in notification/email bodies |
-| COM-I5 | Email delivery goes through MailPort — domain does not own vendor coupling |
+| COM-I3 | Secrets must not appear in notification/email bodies |
+| COM-I4 | Email delivery goes through MailPort — domain does not own vendor coupling |
+| COM-I5 | Finance/Legal do not send notifications — they emit events |
 
 ## 17. Primary Business Use Cases
 
@@ -190,17 +205,16 @@ flowchart LR
 |----|----------|
 | UC01 | Create in-app Notification from domain event |
 | UC02 | Mark Notification read / archive |
-| UC03 | Schedule Reminder for Task / Payment Schedule |
+| UC03 | Schedule Reminder for Task / Payment Schedule / Order expiry / Invoice |
 | UC04 | Send transactional Email |
 | UC05 | Admin manage email templates (MVP depth Open Q) |
-| UC06 | Deliver CTV portal notifications |
 
 ## 18. Ownership Matrix
 
 | Business Object | Owner Domain | Referenced By |
 |-----------------|--------------|---------------|
 | Notification | Communication | All domains (produce events) |
-| Reminder | Communication | Legal (Task), Finance (Schedule) |
+| Reminder | Communication | Legal (Task), Finance (Schedule, Order expiry, Invoice) |
 | Outbound Email log | Communication | Monitoring |
 | Email template (business content) | Communication | Identity (auth emails) |
 
@@ -209,10 +223,13 @@ flowchart LR
 | Event (consumed) | Producer | Communication action |
 |-------------------|----------|----------------------|
 | `LeadAssigned` | CRM | Notify assignee |
-| `ContractRequestSubmitted` | Collaboration | Notify reviewers |
 | `ContractStatusChanged` | Legal | Notify watchers / owner |
 | `TaskOverdue` | Legal | Reminder + notify |
-| `PaymentCollected` | Finance | Notify accounting / CTV commission ready |
+| `PaymentCollected` | Finance | Notify accounting |
+| `InvoiceIssued` | Finance | Invoice alert |
+| `InvoiceDueSoon` / `InvoiceOverdue` | Finance | If due date / overdue policy locked |
+| `OrderExpiringSoon` | Finance | Staff expiry alert |
+| `ExpenseSubmitted` | Finance | Notify Chi approver |
 | `UserInvited` | Identity | Email invite (if used) |
 
 Communication is primarily a **consumer**; it may emit delivery/failure signals for Monitoring (not business domain events).
@@ -247,6 +264,6 @@ Communication is primarily a **consumer**; it may emit delivery/failure signals 
 
 | | Domains |
 |--|---------|
-| **Depends on** | Identity; consumes events from CRM, Collaboration, Legal, Finance |
+| **Depends on** | Identity; consumes events from CRM, Legal, Finance |
 | **Provides to** | Users (inbox), Monitoring (delivery health) |
 | **Does not own** | Upstream business lifecycles |

@@ -21,7 +21,7 @@ Audience: product owners, tech leads, engineers, QA, and future joiners.
 
 ## 3. Background
 
-DYN CRM is a CRM/ERP-style system for a **law firm**. It manages customers and leads, legal contracts, configurable workflows, finance (order → invoice → payment), VAT, collaborator (CTV) commission, dashboards, and notifications.
+DYN CRM is a CRM/ERP-style system for a **law firm**. It manages customers and leads, legal contracts, configurable workflows, finance (order → payment → invoice), VAT, dashboards, and notifications. CTV portal is **SUPERSEDED 2026-08-17** pending re-lock.
 
 | Attribute | Decision (locked) |
 |-----------|-------------------|

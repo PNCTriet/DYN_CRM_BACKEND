@@ -28,8 +28,8 @@ MVP modules come from Phase 00 Scope, grouped into DDD-lite contexts inside one 
 | Identity | Authentication BFF use cases, users, roles, permissions |
 | CRM | Lead, Customer, Contact |
 | Legal | Contract, Workflow, Files, Timeline |
-| Finance | Order, Invoice, Payment, VAT |
-| Commission | Commission calculation, CTV portal surface |
+| Finance | Order, Invoice, Payment, VAT, Debt, Schedule; Thu/Chi **OPEN** |
+| Commission | **Re-lock / likely fold into Finance** — CTV portal **SUPERSEDED 2026-08-17** |
 | System | Dashboard, Notification, Configuration, Audit |
 
 Presentation (Next.js) is not a domain module; it consumes REST only. Worker consumes the same application services as the API for async use cases.
@@ -43,8 +43,8 @@ Presentation (Next.js) is not a domain module; it consumes REST only. Worker con
 | Identity | Auth BFF, user lifecycle, role/permission assignment | User, Role, Permission, UserRole |
 | CRM | Lead pipeline, Customer master, Contacts | Lead, Customer, Contact, CustomerFollower |
 | Legal | Contracts, workflow templates/instances/tasks, file metadata, timeline | Contract, WorkflowTemplate, Workflow, Task, FileObject, Activity |
-| Finance | Orders, invoices, payments, VAT amounts | Order, Invoice, Payment, (VAT as calculated fields/policy) |
-| Commission | Commission from collected payment; CTV-restricted views | Commission, CollaboratorProfile / referral link |
+| Finance | Orders, invoices, payments, VAT, debt, schedule; thu/chi if locked | Order, Invoice, Payment, Debt, PaymentSchedule |
+| Commission | **Do not implement a separate CTV portal module** until S6 reversed. If Commission remains, keep it as a Finance application service | Commission (optional) |
 | System | Dashboards read models, in-app notifications, configuration, audit trail | Notification, AppConfig, AuditEntry, dashboard queries |
 
 Shared kernel (`packages/shared-types`): Glossary enums, IDs, money/currency shape (VND), common error codes — **no workflows**.
@@ -62,8 +62,9 @@ Other modules must not reach into another module’s internal repositories or Pr
 |-------------|-------|-----|
 | Lead → Customer conversion | Sync application call CRM owns | Strong consistency for master data |
 | Contract → create Order | Sync Finance API called from Legal/Finance orchestration | Money setup must succeed or fail with the user action |
-| Payment recorded → Commission | Async event | Side effect; worker required (TechStack) |
-| Task due → Reminder / Notification | Async event | Non-blocking |
+| Payment recorded → Commission | Async event **if** Commission is kept |
+| Task due → Reminder / Notification | Async event |
+| Order expiring / Invoice issued → Notification | Async event |
 | Payment / Contract change → Timeline | Sync write by owning module or async fan-out | Prefer owning module writes its own activity; System may subscribe |
 | Config read (VAT %, commission %) | Sync System Configuration read | Small, stable reads |
 

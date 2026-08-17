@@ -27,6 +27,7 @@ Define the **CRM** business capability: acquiring and managing Leads, converting
 | Follow-up | Yes |
 | Timeline / activity history / notes | Yes |
 | Search & filter | Yes |
+| Operational export (used-service / industry) | Yes (2026-08-17) — not a BI warehouse |
 | Analytics foundation | Yes (basic counts/pipelines — not full BI) |
 
 ### Lead sources (locked list for MVP)
@@ -50,7 +51,7 @@ Define the **CRM** business capability: acquiring and managing Leads, converting
 | Admin | Configuration support |
 | Lawyer / Legal Assistant | Often read/follow after conversion |
 | Accounting | Read as needed for billing context |
-| CTV | **No full CRM** per Phase 00 (see Collaboration for portal scope) |
+| CTV | **No CRM access** — portal **removed** pending Collaboration re-lock (2026-08-17) |
 
 ## 5. Business Lifecycle
 
@@ -105,6 +106,8 @@ flowchart TD
 | Note | Free-text business note on Lead/Customer |
 | Activity / Timeline entry | Chronological CRM-relevant facts |
 | Import batch | Record of an Excel import run |
+| Industry / field | Customer classification for care/export — catalog **OPEN** |
+| Service usage | Whether the customer has used a service — derivation **OPEN** |
 
 ## 7. Business Rules
 
@@ -113,22 +116,25 @@ flowchart TD
 3. Every Customer has exactly **one** Owner; Followers optional (Phase 00).  
 4. Duplicate detection runs before import commit (rules for match keys → Open Questions).  
 5. Import must assign Owner before commit (MVP flow).  
-6. Referral source may link to Collaboration/CTV (attribution model still Open Question).  
-7. CTV has scoped assigned-customer access via Collaboration portal — not full CRM (locked 2026-08-03).
+6. Referral source remains a Lead source label; **mandatory CTV link is dropped** unless Collaboration is restored.  
+7. CTV assigned-customer access is **SUPERSEDED** (2026-08-17).  
+8. Staff may **export** Customer data grouped/filtered by (a) used service vs not, (b) industry/field — operational export, not a warehouse.  
+9. An additional Customer **date column** was requested; **which date is OPEN** — do not add a Prisma field until clarified.
 
 ## 8. Permission Matrix
 
-| Permission (illustrative) | Sales | Manager | Admin | Lawyer | CTV |
-|---------------------------|-------|---------|-------|--------|-----|
-| `lead.read` | Y | Y | Y | Y | N |
-| `lead.write` | Y | Y | Y | Limited/Open Q | N |
-| `lead.import` | Y | Y | Y | N | N |
-| `lead.convert` | Y | Y | Y | Open Q | N |
-| `customer.read` | Y | Y | Y | Y | N* |
-| `customer.write` | Y | Y | Y | Open Q | N |
-| `contact.write` | Y | Y | Y | Open Q | N |
+| Permission (illustrative) | Sales | Manager | Admin | Lawyer |
+|---------------------------|-------|---------|-------|--------|
+| `lead.read` | Y | Y | Y | Y |
+| `lead.write` | Y | Y | Y | Limited/Open Q |
+| `lead.import` | Y | Y | Y | N |
+| `lead.convert` | Y | Y | Y | Open Q |
+| `customer.read` | Y | Y | Y | Y |
+| `customer.write` | Y | Y | Y | Open Q |
+| `customer.export` | Y | Y | Y | Open Q |
+| `contact.write` | Y | Y | Y | Open Q |
 
-\*CTV sees **assigned** customers only via Collaboration portal (locked 2026-08-03) — not full CRM.
+CTV columns removed pending Collaboration re-lock.
 
 Owner vs Follower write rights: baseline in Security.md; **final lock still Open Question**.
 
@@ -152,18 +158,16 @@ Owner vs Follower write rights: baseline in Security.md; **final lock still Open
 flowchart LR
   CRM[CRM] --> ID[Identity]
   CRM --> LEG[LegalOperation]
-  CRM --> COL[Collaboration]
   CRM --> COM[Communication]
-  COL -.->|referral_source| CRM
 ```
 
 | Domain | Interaction |
 |--------|-------------|
 | Identity | Owner / Follower users |
-| LegalOperation | Customer referenced by Contract |
-| Collaboration | Assigned customers / referral anchors (locked Collaboration expansion) |
+| LegalOperation | Customer referenced by Contract; **used service** may derive from Contract/Order — **OPEN** |
 | Finance | Customer on Order/Invoice |
 | Communication | Follow-up reminders, assignment notices |
+| Collaboration | **Not in path** unless S6 reversed |
 
 ## 11. Future Extension
 
@@ -237,7 +241,9 @@ journey
 4. Can Contact exist on Lead before conversion?  
 5. Owner vs Follower exact write permissions?  
 6. May Lawyers convert leads?  
-7. Referral Lead → mandatory CTV link?
+7. **Which date** belongs on the Customer information column? Examples for clarification only — do **not** pick one: created date; customer start/service date; first service date; birth date; company establishment date; other.  
+8. How is **“has used the service”** derived if not unambiguous from Contract/Order/Payment?  
+9. Industry / field: fixed catalog vs free text?
 
 ## 14. TODO
 
@@ -245,7 +251,9 @@ journey
 - [ ] Lock duplicate policy  
 - [ ] Lock conversion field map  
 - [ ] Publish Excel template column list  
-- [x] CTV assigned-customer visibility aligned with Collaboration lock (2026-08-03)
+- [x] 2026-08-03 CTV assigned-customer visibility — **SUPERSEDED** by S6 (2026-08-17)  
+- [ ] Lock Customer extra date meaning before Prisma  
+- [ ] Lock “used service” derivation + industry catalog for export
 
 ## 15. Aggregate Boundaries
 
@@ -267,7 +275,7 @@ Contacts must not exist as orphan masters without a Customer (unless Open Q allo
 | CRM-I4 | Converted Lead cannot be converted again |
 | CRM-I5 | Lead and Customer remain distinct entities |
 | CRM-I6 | Import commit requires Owner assignment |
-| CRM-I7 | CTV never receives unscoped staff CRM access |
+| CRM-I7 | Staff CRM is not exposed via a CTV portal (portal removed pending re-lock) |
 
 ## 17. Primary Business Use Cases
 
@@ -283,13 +291,14 @@ Contacts must not exist as orphan masters without a Customer (unless Open Q allo
 | UC08 | Search / filter Leads & Customers |
 | UC09 | Follow Customer (Follower) |
 | UC10 | Merge Duplicate (future) |
+| UC11 | Export customers by used-service and industry/field |
 
 ## 18. Ownership Matrix
 
 | Business Object | Owner Domain | Referenced By |
 |-----------------|--------------|---------------|
-| Lead | CRM | Collaboration, Communication |
-| Customer | CRM | Legal, Finance, Collaboration |
+| Lead | CRM | Communication |
+| Customer | CRM | Legal, Finance |
 | Contact | CRM | Legal (context) |
 | ImportBatch | CRM | — |
 | Note / Activity (CRM) | CRM | Communication (optional) |
@@ -303,7 +312,7 @@ Contacts must not exist as orphan masters without a Customer (unless Open Q allo
 | `LeadQualified` | CRM | Communication (optional) |
 | `LeadConverted` | CRM | Legal, Communication, Dashboard |
 | `LeadDisqualified` | CRM | Communication (optional) |
-| `CustomerCreated` | CRM | Collaboration, Communication |
+| `CustomerCreated` | CRM | Communication |
 | `CustomerOwnerChanged` | CRM | Communication |
 | `ImportCompleted` | CRM | Communication (optional) |
 
@@ -322,7 +331,8 @@ Contacts must not exist as orphan masters without a Customer (unless Open Q allo
 |---------|------------|
 | Lead sources | Fixed list; extend later by configuration |
 | Excel import | Fixed template; extension point for dynamic mapping — **no metadata engine** |
-| Analytics | Foundation metrics only (§22) |
+| Industry / field | Catalog vs free text **OPEN** |
+| Analytics | Foundation metrics + operational export — **no** BI engine |
 
 ## 22. Business Metrics
 
@@ -339,5 +349,5 @@ Contacts must not exist as orphan masters without a Customer (unless Open Q allo
 | | Domains |
 |--|---------|
 | **Depends on** | Identity |
-| **Provides to** | Legal (Customer), Finance (Customer), Collaboration, Communication |
+| **Provides to** | Legal (Customer), Finance (Customer), Communication |
 | **Does not own** | Contract, Payment, Commission lifecycles |

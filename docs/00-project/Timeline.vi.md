@@ -53,7 +53,6 @@ gantt
   CRM Lead Customer Contact  :c1, 2026-09-10, 25d
   Contract Workflow Files    :c2, 2026-09-25, 30d
   Finance Order Invoice Pay  :c3, 2026-10-15, 30d
-  Commission CTV Portal      :c4, 2026-11-01, 25d
   Dashboard Notify Email     :c5, 2026-11-10, 20d
 
   section Release
@@ -70,7 +69,10 @@ gantt
 | **M1** | Docs Phase 00–01; skeleton monorepo; Identity (NestJS BFF + Supabase Auth, RBAC); Prisma → Supabase PG; StoragePort + Redis/BullMQ trên Railway | User đăng nhập qua NestJS; route bảo vệ hello; Architecture docs được duyệt |
 | **M2** | Docs Phase 02–03 (CRM + Contract bắt đầu); CRUD Lead/Customer/Contact; Owner/Followers; Timeline cơ bản; upload file | Sales dùng được CRM lõi trên staging |
 | **M3** | Vòng đời Contract; Workflow template + Kanban + Task/Hạn/Assignee/Nhắc; tiếp domain docs | Legal chạy được hợp đồng tư vấn tới Signed + task workflow |
-| **M4** | Order, Invoice (contract/milestone/manual), VAT 10% exclusive, phương thức thanh toán + partial; % hoa hồng trên tiền thu; CTV portal MVP | Kế toán xuất HĐ và ghi nhận thanh toán; CTV xem hoa hồng của mình |
+| **M4** | Order, Invoice (sau Payment), VAT 10% exclusive, Payment + SePay candidate, Debt, Thu/Chi, alert hết hạn Order | Kế toán ghi thanh toán/HĐ; duyệt Chi nếu đã khóa |
+| **M5** | Dashboard; Notification; Email; Configuration; UAT; ~30 users | MVP acceptance; production live |
+
+> **2026-08-17:** M4 không còn CTV portal / xem hoa hồng trừ khi S6 đảo. Thay bằng Thu/Chi + alert hết hạn/hóa đơn.
 | **M5** | Dashboard; Notification; Email template; Configuration; UAT; performance ~30 user; production trên Vercel + Railway + Supabase | Acceptance MVP ký; production live |
 
 Nếu chương trình **4 tháng**: nén M4–M5 bằng cách thu hẹp widget Dashboard và trì hoãn email template không critical (phải cập nhật Scope nếu trì hoãn).

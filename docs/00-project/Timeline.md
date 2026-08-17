@@ -53,7 +53,6 @@ gantt
   CRM Lead Customer Contact  :c1, 2026-09-10, 25d
   Contract Workflow Files    :c2, 2026-09-25, 30d
   Finance Order Invoice Pay  :c3, 2026-10-15, 30d
-  Commission CTV Portal      :c4, 2026-11-01, 25d
   Dashboard Notify Email     :c5, 2026-11-10, 20d
 
   section Release
@@ -70,8 +69,10 @@ gantt
 | **M1** | Docs Phase 00–01; monorepo skeleton; Identity (NestJS BFF + Supabase Auth, RBAC); Prisma → Supabase PG; StoragePort + Redis/BullMQ on Railway wiring | Users can authenticate via NestJS; protected hello route; Architecture docs approved |
 | **M2** | Docs Phase 02–03 (CRM + Contract started); Lead, Customer, Contact CRUD; Owner/Followers; basic Timeline; File upload | CRM core usable by Sales in staging |
 | **M3** | Contract lifecycle; Workflow templates + Kanban + Tasks/Due/Assignee/Reminder; continue domain docs | Legal team can run a consulting contract through Signed + workflow tasks |
-| **M4** | Order, Invoice (contract/milestone/manual), VAT 10% exclusive, Payment methods + partial pay; Commission % on collected payment; CTV portal MVP | Accounting can invoice and record payments; CTV sees own commission |
-| **M5** | Dashboard; Notification; Email templates; Configuration polish; UAT; performance pass for ~30 users; production on Vercel + Railway + Supabase | MVP acceptance signed; production live |
+| **M4** | Order, Invoice (after Payment), VAT 10% exclusive, Payment + SePay candidate, Debt, Thu/Chi, Order expiry alerts | Accounting can record payments/invoices; Chi approval path if locked |
+| **M5** | Dashboard; Notification; Email templates; Configuration polish; UAT; performance pass for ~30 users | MVP acceptance signed; production live |
+
+> **2026-08-17:** M4 no longer includes CTV portal / Commission visibility unless S6 is reversed. Backfill that month with Thu/Chi + expiry/invoice alerts instead.
 
 If the program is **4 months**, compress M4–M5 by narrowing Dashboard widgets and deferring non-critical email templates (must update Scope if deferred).
 

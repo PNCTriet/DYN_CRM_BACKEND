@@ -2,6 +2,8 @@
 
 > Bản tiếng Việt của [CRM.md](./CRM.md). Canonical: English.
 
+**2026-08-17:** Export khách theo (1) đã dùng dịch vụ / chưa, (2) lĩnh vực — năng lực vận hành, không BI. **OPEN:** “đã dùng dịch vụ” derive từ Contract/Order/Payment thế nào; catalog lĩnh vực. **Cột ngày** khách hàng: **không đoán** — Open Question (ngày tạo / ngày bắt đầu DV / ngày DV đầu / ngày sinh / ngày thành lập / khác). Portal CTV / khách gán **SUPERSEDED**.
+
 ## 1. Mục đích
 
 Định nghĩa năng lực **CRM**: thu hút và quản lý Lead, convert sang Customer, Contact, phân công, follow-up, lịch sử hoạt động, nền tảng search/filter/analytics — không chi tiết triển khai.
@@ -158,7 +160,9 @@ classDiagram
 4. Contact trên Lead trước convert?  
 5. Quyền ghi Owner vs Follower?  
 6. Lawyer được convert Lead?  
-7. Lead Referral bắt buộc gắn CTV?
+7. **Cột ngày** trên thông tin khách hàng là ngày nào? Chỉ ví dụ làm rõ — **không chọn hộ**: ngày tạo; ngày bắt đầu DV; ngày DV đầu; ngày sinh; ngày thành lập công ty; khác.  
+8. “Đã dùng dịch vụ” derive thế nào nếu không unambiguous từ Contract/Order/Payment?  
+9. Lĩnh vực: catalog cố định hay free text?
 
 ## 14. TODO
 

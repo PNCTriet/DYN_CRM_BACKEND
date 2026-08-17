@@ -16,7 +16,7 @@ Describe the business context, actors, and end-to-end value streams that DYN CRM
 
 ## 3. Background
 
-DYN CRM serves a **law firm** offering **general legal consulting** in MVP. The firm needs coordinated work across sales, legal delivery, accounting, management, and external collaborators (CTV / referral partners).
+DYN CRM serves a **law firm** offering **general legal consulting** in MVP. The firm needs coordinated work across sales, legal delivery, accounting, and management. External CTV **portal operations are SUPERSEDED (2026-08-17)**; CTV-related money, if any, is a Finance thu/chi or note.
 
 Approximate scale: **~30 concurrent users** on a single-tenant deployment.
 
@@ -32,8 +32,8 @@ Approximate scale: **~30 concurrent users** on a single-tenant deployment.
 | Sales | Acquisition | Leads, qualification, customer handoff |
 | Lawyer | Legal delivery | Contracts, workflow, files, timeline |
 | Legal Assistant | Delivery support | Tasks, files, customer support data |
-| Accounting | Finance | Orders, invoices, VAT, payments |
-| Collaborator (CTV) | External referral partner | Collaboration portal: assigned customers, contract requests, referrals, commission, profile |
+| Accounting | Finance | Orders, invoices, VAT, payments, thu/chi |
+| Collaborator (CTV) | External (historical) | **Not a system actor** unless S6 reversed; money via Finance |
 
 ### 4.2 Core business objects (canonical)
 
@@ -107,13 +107,9 @@ flowchart TD
 
 VAT Invoice is created **after** Payment. Invoice may still reference Contract, Milestone, or Manual context.
 
-#### VS-4: Collaborator commission
+#### VS-4: CTV money (2026-08-17)
 
-1. CTV refers opportunity / is assigned customers (referral linkage details in Collaboration domain).
-2. CTV may submit Contract Request; staff approve → Official Contract (LegalOperation).
-3. Customer/contract/payment proceeds in CRM (staff roles).
-4. On **collected payment**, commission engine applies **configurable %**.
-5. CTV views own commission (and scoped portal data) only.
+No portal funnel. If CTV-related money exists, Accounting records a **Thu/Chi entry or note** in Finance. Semantics (income vs expense vs note) remain an **Open Question**. Do not implement Contract Request or commission-visibility portal.
 
 ### 4.4 Organizational assumptions (locked)
 
@@ -132,8 +128,8 @@ VAT Invoice is created **after** Payment. Invoice may still reference Contract, 
 3. Contract is legal; Order is financial; do not use one term for both.
 4. Payments may be partial; finance views must show remaining balances (calculation rules in domain/finance docs).
 5. Commission must not be calculated from unpaid invoice amounts or raw contract value in MVP.
-6. CTV must not perform full staff CRM/Legal/Finance operations; Collaboration portal only (assigned customers + contract requests allowed).
-7. Unconfirmed policies (discount authority, refunds, credit notes, e-invoice legal export) are **out of documented rules** until decided.
+6. CTV portal operations are **out of MVP** pending Scope re-lock (2026-08-17).  
+7. Unconfirmed policies (discount authority, refunds, credit notes, e-invoice legal export, Income/Expense persistence) are **out of documented rules** until decided.
 
 ## 6. Best Practices
 
@@ -158,8 +154,8 @@ Sales creates Lead “Nguyen Van A”, qualifies, converts to Customer (Individu
 **Example B — Company client**  
 Customer type Company with Contacts (signatory, accountant). Same contract/finance chain. Followers include Legal Assistant.
 
-**Example C — CTV**  
-CTV logs into Collaboration portal, manages assigned customers, may submit a Contract Request, sees own commission from collected payments. Attempt to open staff Contracts list or create Official Contract directly is denied.
+**Example C — CTV (historical, do not implement)**  
+2026-08-03 portal (assigned customers, Contract Request, own commission) is **SUPERSEDED**. Record CTV-related money in Finance only if required.
 
 ## 8. Future Improvements
 
@@ -189,9 +185,9 @@ CTV logs into Collaboration portal, manages assigned customers, may submit a Con
 
 ## TODO
 
+- [ ] Re-lock CTV removal (S6) vs restore portal
 - [ ] Confirm law firm legal entity name and branding
 - [ ] Confirm Lead → Customer conversion field mapping
-- [ ] Confirm how CTV is linked to Lead/Customer/Contract/Payment
 - [ ] Confirm refund / credit note / void invoice policy (if any)
 - [ ] Confirm e-invoice (HĐĐT) regulatory integration need
 - [ ] Lock Cancelled transition matrix for Contract

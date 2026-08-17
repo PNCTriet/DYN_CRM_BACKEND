@@ -24,7 +24,7 @@ Define the **Identity** business capability: users, authentication subjects, rol
 | Permission checks | Yes (RBAC) |
 | Permission Group (bundle) | Yes (recommended for admin UX) |
 | Organization / Department | Extension point only — structure TBD |
-| CTV vs staff principals | Yes (role-based) |
+| CTV vs staff principals | **Re-lock** — `COLLABORATOR` not assumed after 2026-08-17 |
 
 Roles remain **configurable** (assignable permission sets), while MVP ships the Glossary role names as initial bundles.
 
@@ -41,7 +41,7 @@ Permission  →  Permission Group  →  Role  →  User
 | **Role** | Assignable named set (Glossary starters + custom later) |
 | **User** | Principal receiving one or more roles |
 
-Philosophy: configure **functions**, not pages; keep bundles editable without redeploying product code; isolate CTV portal bundles from staff CRM/Legal/Finance bundles.
+Philosophy: configure **functions**, not pages; keep bundles editable without redeploying product code. Isolate any future partner bundles from staff CRM/Legal/Finance bundles **if** a partner role is re-approved.
 
 ## 4. Actors
 
@@ -50,7 +50,8 @@ Philosophy: configure **functions**, not pages; keep bundles editable without re
 | Super Admin | Full identity administration |
 | Admin | User/role administration within policy |
 | All staff roles | Consume permissions |
-| CTV | Collaborator role; portal-scoped permissions |
+| Chi approver (“Nhi”) | Finance expense approval — **not a Glossary role yet** (Open Q) |
+| CTV / Collaborator | **Not an MVP login principal** unless Collaboration S6 is reversed |
 
 ## 5. Business Lifecycle
 
@@ -108,9 +109,10 @@ flowchart LR
 2. Permission by **function**, not by UI page.  
 3. Unknown permission ⇒ deny (Security).  
 4. Deactivated user cannot use the system even if IdP login succeeds (Security).  
-5. CTV role must not receive staff CRM permission bundles (Security / Collaboration).  
+5. Do not ship a `COLLABORATOR` portal bundle unless Collaboration is re-approved (2026-08-17).  
 6. Organization/Department **not required** for MVP authorization; leave nullable extension fields/concepts for later.  
-7. Roles listed in Phase 00 remain the starter set; additional custom roles allowed if Admin configures permissions carefully.
+7. Roles listed in Phase 00 remain the starter set **except** Collaborator pending Scope re-lock; additional custom roles allowed if Admin configures permissions carefully.  
+8. Expense approval must be a **permission** (and optionally a named user) — do not hard-code the person “Nhi” in domain code.
 
 ## 8. Permission Matrix (identity administration)
 
@@ -180,14 +182,17 @@ flowchart TD
 ## 13. Open Questions
 
 1. Staff provisioning: admin invite only?  
-2. CTV provisioning flow?  
-3. Are custom roles allowed in MVP beyond the eight Glossary roles?  
+2. Is `COLLABORATOR` role removed from MVP? (schema-critical with S6)  
+3. Are custom roles allowed in MVP beyond the remaining Glossary roles?  
 4. Is Permission Group mandatory or can permissions attach directly to roles?  
 5. Minimum Organization/Department fields to reserve for future without implementing UI?  
-6. Owner vs Follower permission difference (cross-cut with CRM/Security)?
+6. Owner vs Follower permission difference (cross-cut with CRM/Security)?  
+7. How is Chi approver “Nhi” represented (named User vs Role vs permission assignment)?
 
 ## 14. TODO
 
+- [ ] Confirm `COLLABORATOR` role removed vs restored with S6  
+- [ ] Map expense approver to User/Role/permission (do not hard-code a person)  
 - [ ] Lock provisioning flows  
 - [ ] Publish MVP role → permission group bundles  
 - [ ] Confirm Permission Group modeling choice  
@@ -210,7 +215,7 @@ flowchart TD
 | ID-I1 | Unknown permission ⇒ **deny** |
 | ID-I2 | Disabled / deactivated user cannot access the system |
 | ID-I3 | Permission codes are unique |
-| ID-I4 | CTV role must not receive staff CRM/Legal/Finance permission bundles |
+| ID-I4 | Do not grant a partner portal bundle unless Collaboration is re-approved |
 | ID-I5 | Authorization is RBAC only in MVP (no ABAC) |
 | ID-I6 | Permissions are function-based (`resource.action`), not page-based |
 
@@ -250,7 +255,7 @@ flowchart TD
 |------------|
 | Permission code must be unique |
 | Deactivated user retains history but cannot act |
-| Staff vs CTV bundles remain isolated |
+| Staff vs partner bundles remain isolated **if** a partner role exists |
 | Org/Department not required to authorize MVP actions |
 
 ## 21. Dynamic Features
@@ -268,12 +273,12 @@ flowchart TD
 | Active users by role | Capacity / licensing later |
 | Failed login rate | Security health |
 | Role assignment churn | Access governance |
-| CTV vs staff active count | Partner vs internal mix |
+| CTV vs staff active count | **N/A** unless Collaborator role restored |
 
 ## 23. Cross Domain Dependency
 
 | | Domains |
 |--|---------|
 | **Depends on** | — (foundation; AuthPort is infrastructure) |
-| **Provides to** | CRM, Legal, Finance, Collaboration, Communication |
+| **Provides to** | CRM, Legal, Finance, Communication |
 | **Does not own** | Business object lifecycles (Customer, Contract, Payment, …) |

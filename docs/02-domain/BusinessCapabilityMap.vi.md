@@ -2,6 +2,8 @@
 
 > Bản tiếng Việt của [BusinessCapabilityMap.md](./BusinessCapabilityMap.md). Canonical: English.
 
+**2026-08-17:** Collaboration/CTV **không** trên bản đồ implement. Invoice **sau** Payment vẫn khóa. Commission/portal **không** trên chuỗi đến khi khóa lại. Thu/Chi nằm ở Finance (mô hình OPEN).
+
 ## 1. Mục đích
 
 Cung cấp một bản đồ năng lực nghiệp vụ, value stream end-to-end và ownership domain trước khi đọc từng tài liệu domain.

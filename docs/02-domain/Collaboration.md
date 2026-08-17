@@ -2,272 +2,167 @@
 
 > Vietnamese version: [Collaboration.vi.md](./Collaboration.vi.md)
 
+## Scope change — 2026-08-17 (RE-LOCK REQUIRED)
+
+Stakeholder feedback: **remove CTV-specific operational information**; record only a **thu/chi (income/expense) entry / note related to CTV** when money is involved.
+
+This **conflicts** with the Collaboration expansion locked on 2026-08-03. The 2026-08-03 portal model is **SUPERSEDED for implementation**. It is retained as a historical record in the Appendix so the change is explicit — **do not implement the portal**.
+
+| Previous capability (2026-08-03) | 2026-08-17 proposed stance |
+|----------------------------------|----------------------------|
+| CTV portal login | **Removed** unless re-approved |
+| Assigned customers | **Removed** |
+| Contract Request + staff approval | **Removed** |
+| Referral attribution model | **Removed** |
+| Own-commission portal visibility | **Removed** (Finance may still record money) |
+| Collaborator profile / `COLLABORATOR` role | **Removed** unless Identity re-approves |
+| Dedicated Collaboration operational domain | **Not in Phase 03 aggregate order** unless re-confirmed |
+| CTV-related money | **Finance** income/expense entry or note only |
+
+**Ambiguity kept (do not invent accounting semantics):** “khoản thu chi cho CTV” does not specify whether the entry is **Thu (income)**, **Chi (expense)**, both, or a non-posting note. See Finance Open Questions.
+
+Until stakeholders **re-lock** this change into Phase 00 Scope, treat Collaboration as **out of the implementation path**.
+
+---
+
 ## 1. Purpose
 
-Define the **Collaboration** capability: how internal staff partner with **Collaborators (CTV)** — external referral partners with a limited portal — including contract requests that become official contracts only after staff approval.
+Record the **simplified CTV stance** after 2026-08-17: no operational CTV domain in MVP unless re-approved. CTV-related money, if any, is a Finance concern.
 
 ## 2. Scope
 
-| In scope | Out of scope |
-|----------|--------------|
-| CTV portal business capabilities | Full CRM for CTV |
-| Contract Request lifecycle | CTV creating official Contract unilaterally |
-| Handoff into LegalOperation / Finance / Commission | BPMN for partner flows |
+| In scope (proposed MVP) | Out of scope (proposed MVP) |
+|-------------------------|-----------------------------|
+| Pointer to Finance for CTV-related thu/chi | CTV portal |
+| Explicit list of removed capabilities | Assigned customers, Contract Request, referral graph |
+| Historical 2026-08-03 model (appendix) | BPMN, CTV networks, KYC onboarding |
 
-## 3. Business Capability
+## 3. Business Capability (proposed)
 
-| Capability | Description | Status |
-|------------|-------------|--------|
-| CTV identity | Login via Identity; role `COLLABORATOR` | Locked |
-| Limited portal | Restricted surfaces only (not full CRM) | Locked |
-| Assigned customers | Manage customers **assigned** to the CTV (scoped) | **Locked 2026-08-03** (Collaboration expansion) |
-| Contract Request | CTV submits request; staff review/approve before Official Contract | **Locked 2026-08-03** |
-| Commission visibility | View own commission (Finance event) | Locked |
-| Profile | Update own profile | Locked |
+| Capability | Status |
+|------------|--------|
+| CTV as a first-class operational actor | **Deferred / removed pending re-lock** |
+| CTV money as Finance Chi/Thu or note | **Proposed** — semantics **OPEN** |
+| Staff create Official Contract | Unchanged (LegalOperation) |
 
-CTV **cannot** create Official Contracts unilaterally or access staff CRM/Legal/Finance modules.
+```mermaid
+flowchart LR
+  Staff[Staff] --> Contract[Official_Contract]
+  Contract --> Order[Order]
+  Order --> Pay[Payment]
+  Pay --> Inv[VAT_Invoice]
+  CTVMoney[CTV_thu_chi_or_note] --> FIN[Finance]
+```
+
+No CTV portal in this flow.
+
 ## 4. Actors
 
-| Actor | Type | Notes |
-|-------|------|-------|
-| Collaborator (CTV) | External | Not an employee |
-| Sales / Lawyer / Admin | Internal | Review and approve requests |
-| Accounting | Internal | Commission after collected payment |
+| Actor | Stance after 2026-08-17 |
+|-------|-------------------------|
+| Staff (Sales, Lawyer, Accounting, Admin) | Own CRM / Legal / Finance as before |
+| Collaborator (CTV) as login principal | **Not assumed** until re-approved |
+| Named expense approver (“Nhi”) | Finance approval — not a CTV actor |
 
 ## 5. Business Lifecycle
 
-### 5.1 Target partner → money flow
-
-```mermaid
-flowchart TD
-  CTV[CTV] --> CR[Contract_Request]
-  CR --> Review[Staff_Review]
-  Review --> Approval[Approval]
-  Approval --> OC[Official_Contract]
-  OC --> WF[Workflow_starts]
-  WF --> FIN[Finance]
-  FIN --> COMM[Commission]
-  COMM --> CTV
-```
-
-### 5.2 Contract Request states (proposed)
-
-```mermaid
-stateDiagram-v2
-  [*] --> Draft
-  Draft --> Submitted
-  Submitted --> InReview
-  InReview --> Approved
-  InReview --> Rejected
-  InReview --> NeedsInfo
-  NeedsInfo --> Submitted
-  Approved --> [*]
-  Rejected --> [*]
-```
-
-Approved request enables staff to create **Official Contract** in LegalOperation (CTV still cannot publish the official contract alone).
+None for Collaboration in the proposed MVP. Official Contract lifecycle stays in LegalOperation. Money lifecycle stays in Finance.
 
 ## 6. Main Business Objects
 
-| Object | Meaning |
-|--------|---------|
-| Collaborator profile | CTV business profile linked to Identity User |
-| Referral attribution | Link between CTV and Lead/Customer/Request (exact anchor → Open Q) |
-| Contract Request | CTV-initiated request for a potential engagement |
-| Request attachment | Files submitted with request (via StoragePort later) |
+| Object | Owner after re-lock | Notes |
+|--------|---------------------|-------|
+| CTV thu/chi or note | **Finance** | Exact object **OPEN** |
+| Collaborator Profile | **Not modeled** unless re-approved | |
+| Contract Request | **Not modeled** unless re-approved | |
+| Referral Attribution | **Not modeled** unless re-approved | |
 
 ## 7. Business Rules
 
-1. CTV is **not** an employee (Phase 00 / Glossary).  
-2. CTV **cannot** create official Contracts (this document + LegalOperation).  
-3. Commission remains based on **collected payment** (Phase 00) — Collaboration does not redefine the formula.  
-4. Portal remains permission-scoped; no staff CRM APIs (Security).  
-5. Staff approval is mandatory between Contract Request and Official Contract.  
-6. Do not grant full CRM module to CTV “for convenience.”
+1. Do not implement CTV portal, assigned-customer scope, or Contract Request until Scope is re-locked **back** to the 2026-08-03 model.  
+2. Do not store CTV operational masters “just in case.”  
+3. If a CTV payment must be recorded, use Finance Chi/Thu (or note) — do not recreate a Collaboration aggregate.  
+4. Commission as a **calculated partner payout object** is **not confirmed** by 2026-08-17 feedback — Finance re-lock.
 
 ## 8. Permission Matrix
 
-| Permission (illustrative) | CTV | Sales | Lawyer | Admin | Accounting |
-|---------------------------|-----|-------|--------|-------|------------|
-| `portal.login` | Y | — | — | — | — |
-| `ctv.profile.update` | Y | N | N | Y | N |
-| `ctv.referral.read_own` | Y | Y* | Y* | Y | Y* |
-| `ctv.commission.read_own` | Y | N | N | Y | Y |
-| `contract_request.create` | Y | — | — | — | — |
-| `contract_request.review` | N | Y | Y | Y | N |
-| `contract_request.approve` | N | Open Q | Y | Y | N |
-| `customer.read_assigned_ctv` | Y | — | — | — | — |
-| `customer.write_assigned_ctv` | Y (scoped) | — | — | — | — |
-
-\*Staff visibility into referrals for operations — exact scope Open Question.
+No CTV portal permissions in the proposed MVP. Staff Finance permissions cover thu/chi (see Finance.md). Expense approval (“Nhi”) is a Finance/Identity Open Question.
 
 ## 9. Business Events
 
-| Event | When |
-|-------|------|
-| `ContractRequestSubmitted` | CTV submits |
-| `ContractRequestApproved` | Staff approves |
-| `ContractRequestRejected` | Staff rejects |
-| `OfficialContractCreatedFromRequest` | LegalOperation creates contract |
-| `CommissionVisibleToCtv` | After Finance calculates from payment |
+| Event | Status |
+|-------|--------|
+| `ContractRequestSubmitted` / `Approved` / `Rejected` | **Do not emit** unless Collaboration is re-approved |
+| `CommissionVisibleToCtv` | **Do not emit** unless portal is re-approved |
+| Finance expense/income events | Owned by Finance |
 
 ## 10. Interaction with Other Domains
 
-```mermaid
-sequenceDiagram
-  participant CTV
-  participant COL as Collaboration
-  participant LEG as LegalOperation
-  participant FIN as Finance
-  CTV->>COL: Submit_Contract_Request
-  COL->>LEG: Notify_review
-  LEG->>LEG: Approve_and_create_Official_Contract
-  LEG->>FIN: Contract_ready_for_Order
-  FIN->>COL: Commission_after_PaymentCollected
-```
-
-| Domain | Interaction |
-|--------|-------------|
-| Identity | CTV user + role |
-| CRM | Customer / referral anchors |
-| LegalOperation | Official Contract after approval |
-| Finance | Commission from collected payment |
-| Communication | Request status notifications |
+| Domain | Interaction (proposed) |
+|--------|------------------------|
+| Finance | Only remaining CTV touch: thu/chi or note |
+| LegalOperation | Staff-created Official Contract; **no** request handoff |
+| CRM | **No** assigned-customer or mandatory referral link |
+| Identity | `COLLABORATOR` role **not** required unless re-approved |
+| Communication | No CTV portal inbox |
 
 ## 11. Future Extension
 
-| Item | Notes |
-|------|-------|
-| Tier / shared / team commission | Phase 00 roadmap |
-| CTV multi-level networks | Out of MVP |
-| Self-serve onboarding KYC | Open Question |
+If stakeholders later re-approve a portal, restore Appendix capabilities behind a new Scope revision — do not silently revive them in Prisma now.
 
 ## 12. Mermaid Diagrams
 
-### 12.1 Permission relationship (conceptual)
-
-```mermaid
-erDiagram
-  USER ||--o| COLLABORATOR_PROFILE : has
-  COLLABORATOR_PROFILE ||--o{ CONTRACT_REQUEST : submits
-  CONTRACT_REQUEST }o--|| CUSTOMER : concerns
-  CONTRACT_REQUEST ||--o| CONTRACT : results_in
-  COLLABORATOR_PROFILE ||--o{ COMMISSION : earns
-```
-
-### 12.2 Rejection path
+### 12.1 Proposed money-only CTV touch
 
 ```mermaid
 flowchart TD
-  Sub[Submitted] --> Rev[InReview]
-  Rev -->|reject| Rej[Rejected]
-  Rev -->|need_info| Info[NeedsInfo]
-  Info --> Sub
-  Rev -->|approve| Appr[Approved]
-  Appr --> StaffContract[Staff_creates_Official_Contract]
+  Acc[Accounting] --> Exp[Expense_or_Income_or_Note]
+  Exp -->|if_CTV_related| Tag[CTV_related_flag_or_payee_note]
+  Tag --> FIN[Finance_ledger_or_tab]
 ```
+
+Exact shape is a Finance Open Question.
 
 ## 13. Open Questions
 
-1. Referral attribution anchor: Lead, Customer, Contract Request, Contract, and/or Payment?  
-2. Who may approve Contract Requests besides Lawyer/Admin (may Sales approve)?  
-3. Required fields on Contract Request?  
-4. Can one request spawn multiple Contracts?  
-5. CTV onboarding: admin invite only?  
-6. Exact rules for “assigned customer” (who assigns; can CTV create Customer)?
+1. Confirm **removal** of CTV portal / Contract Request / assigned customers / Collaborator role (schema-critical).  
+2. Is “khoản thu chi cho CTV” an **Expense**, **Income**, both, or a **non-posting note**?  
+3. Is a payee name/free text enough, or is a CTV master still required?  
+4. Does **Commission** remain a first-class Finance object for staff (e.g. lawyer %) or is it dropped with the portal?
 
 ## 14. TODO
 
-- [x] Stakeholder accepted Collaboration expansion vs original Phase 00 portal (2026-08-03)  
-- [x] Scope.md / Scope.vi.md updated  
-- [ ] Lock referral attribution model  
-- [ ] Lock Contract Request field list & statuses  
-- [ ] Lock assigned-customer assignment rules  
+- [ ] Stakeholder re-lock S6 into Phase 00 Scope (EN/VI)  
+- [x] Mark 2026-08-03 Collaboration expansion as SUPERSEDED for implementation (2026-08-17)  
+- [ ] After re-lock: remove `COLLABORATOR` from Glossary roles **or** restore portal  
+- [ ] Exclude Collaboration from Phase 03 aggregate order until re-confirmed  
 
-## 15. Aggregate Boundaries
+## 15–23. Architectural reference (proposed MVP)
 
-| Aggregate Root | Children / parts | Boundary rule |
-|----------------|------------------|---------------|
-| **Collaborator Profile** | Portal identity link, profile fields | Bound to Identity User with CTV role |
-| **Contract Request** | Attachments, review notes, status | Owned by Collaboration until Official Contract exists in Legal |
-| **Referral Attribution** | Link CTV ↔ Lead/Customer/Request (anchor Open Q) | Collaboration owns attribution semantics |
-| **Assigned Customer scope** | CTV ↔ Customer assignment | Visibility/write scope only — Customer master remains CRM |
+| § | Content |
+|---|---------|
+| 15 Aggregate Boundaries | **None** for Collaboration in proposed MVP |
+| 16 Invariants | Do not implement removed portal invariants |
+| 17 Use cases | None (Finance records CTV-related thu/chi) |
+| 18 Ownership | CTV money → Finance |
+| 19 Events | None from this domain |
+| 20 Constraints | Do not ship portal tables |
+| 21 Dynamic features | None |
+| 22 Metrics | N/A |
+| 23 Depends on / Provides to | Depends on Finance decision; provides nothing |
 
-## 16. Domain Invariants
+---
 
-| ID | Invariant |
-|----|-----------|
-| COL-I1 | CTV cannot create Official Contract unilaterally |
-| COL-I2 | Staff approval is mandatory between Contract Request and Official Contract |
-| COL-I3 | CTV never receives unscoped staff CRM / Legal / Finance access |
-| COL-I4 | Commission visibility for CTV is **own** only; formula owned by Finance |
-| COL-I5 | Assigned-customer access is scoped — not full Customer directory |
+## Appendix A — Historical model (2026-08-03) — SUPERSEDED — DO NOT IMPLEMENT
 
-## 17. Primary Business Use Cases
+Locked 2026-08-03 and **must not** be copied into Prisma while S6 stands:
 
-| ID | Use case |
-|----|----------|
-| UC01 | CTV login / update profile |
-| UC02 | View / manage assigned customers (scoped) |
-| UC03 | Submit Contract Request |
-| UC04 | Staff review / request more info |
-| UC05 | Approve / reject Contract Request |
-| UC06 | Staff create Official Contract from approval |
-| UC07 | CTV view own commission |
-| UC08 | View own referrals (per attribution model) |
+- Collaborator profile linked to Identity User (`COLLABORATOR`)
+- Limited portal: referrals, **assigned customers**, Contract Request, own commission, profile
+- Contract Request states: Draft → Submitted → InReview → Approved / Rejected / NeedsInfo
+- Staff approval required before Official Contract
+- CTV cannot create Official Contract or access staff CRM/Legal/Finance
+- Events: `ContractRequestSubmitted`, `ContractRequestApproved`, `ContractRequestRejected`, `OfficialContractCreatedFromRequest`, `CommissionVisibleToCtv`
+- Open Questions at that time: referral anchor, who approves, request fields, assignment rules
 
-## 18. Ownership Matrix
-
-| Business Object | Owner Domain | Referenced By |
-|-----------------|--------------|---------------|
-| Collaborator Profile | Collaboration | Identity |
-| Contract Request | Collaboration | LegalOperation, Communication |
-| Referral Attribution | Collaboration | CRM, Finance (context) |
-| Assigned Customer link | Collaboration | CRM (Customer master) |
-| Official Contract | LegalOperation | Collaboration (origin only) |
-| Commission | Finance | Collaboration (read visibility) |
-
-## 19. Domain Event Matrix
-
-| Event | Producer | Consumers |
-|-------|----------|-----------|
-| `ContractRequestSubmitted` | Collaboration | Legal (notify), Communication |
-| `ContractRequestApproved` | Collaboration | Legal, Communication |
-| `ContractRequestRejected` | Collaboration | Communication |
-| `OfficialContractCreatedFromRequest` | LegalOperation | Collaboration, Communication |
-| `CommissionVisibleToCtv` | Finance | Collaboration, Communication |
-
-## 20. Business Constraints
-
-| Constraint |
-|------------|
-| Approved Request does not auto-publish Official Contract without staff Legal action |
-| Rejected Request cannot silently reopen as Approved without resubmission path |
-| CTV cannot browse unassigned Customers |
-| Collaboration does not redefine commission base (collected payment) |
-
-## 21. Dynamic Features
-
-| Feature | Stance |
-|---------|--------|
-| Portal surfaces | Fixed MVP catalog (assigned customers, requests, commission, profile) |
-| Request statuses | Configurable labels later; MVP proposed set in §5.2 |
-| Attribution model | Must lock before Phase 03 (Open Q) |
-
-## 22. Business Metrics
-
-| Metric | Purpose |
-|--------|---------|
-| Active CTVs | Partner capacity |
-| Requests submitted / approved / rejected | Funnel |
-| Conversion Request → Official Contract | Partner effectiveness |
-| Commission to CTV | Partner payout volume |
-| Assigned customers per CTV | Workload balance |
-
-## 23. Cross Domain Dependency
-
-| | Domains |
-|--|---------|
-| **Depends on** | Identity, CRM (Customer), Finance (commission read), Legal (contract creation after approval) |
-| **Provides to** | Legal (approved Request), Communication |
-| **Does not own** | Official Contract, Payment, Customer master lifecycle |
+Full prior section text lived in this file before 2026-08-17 and remains recoverable from git history.

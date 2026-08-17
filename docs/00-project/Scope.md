@@ -2,6 +2,23 @@
 
 > Vietnamese version: [Scope.vi.md](./Scope.vi.md)
 
+## Scope change — 2026-08-17 (RE-LOCK REQUIRED)
+
+Stakeholder feedback **overrides** the 2026-08-03 CTV Collaboration expansion for implementation until formally re-confirmed.
+
+| Change | Classification |
+|--------|----------------|
+| Remove CTV operational info; only thu/chi (or note) for CTV | **SCOPE CHANGE** — Collaboration portal **not** MVP unless reversed |
+| Tab Thu / Chi; approve **Chi only** (Nhi) | **SCOPE CHANGE** / Open Q on ledger model |
+| Order validity + configurable N-month alert | **CONFIRMED** capability |
+| Configurable Contract Kanban columns | **CONFIRMED**; Stage vs Status **OPEN** |
+| Unique contract number | **CONFIRMED** |
+| SePay + invoice | **SCOPE CHANGE** candidate vs “gateways = future” |
+| Invoice alerts; CRM export by used-service / industry | **CONFIRMED** capabilities |
+| Extra Customer date column | **OPEN** (which date) |
+
+Invoice **after** Payment remains **LOCKED**. Architecture style remains Modular Monolith + DDD-lite.
+
 ## 1. Purpose
 
 Define precise **in-scope** and **out-of-scope** boundaries for the DYN CRM MVP (4–5 months) so engineering, product, and QA share one checklist of deliverables.
@@ -23,10 +40,9 @@ Stakeholders locked the following MVP constraints on 2026-08-02:
 - Single-tenant deployment (multi-tenant **ready**, not implemented)
 - Vietnamese UI; English UI deferred
 - General legal consulting only (no practice specialization)
-- Finance chain: **Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice → Commission** (Invoice **after** Payment; locked 2026-08-03)
-- Commission from **actual collected payment**
-- CTV uses a **restricted portal** with **Collaboration expansion** (locked 2026-08-03): own referrals, assigned customers, contract requests, own commission, profile — **cannot** create official contracts or access full staff CRM
-- Stack: Modular monolith; NestJS BFF + Supabase Auth; Prisma → Supabase PostgreSQL; Supabase Storage (StoragePort); Redis + BullMQ on Railway; Next.js on Vercel; Docker Compose on VPS = future
+- Finance chain: **Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice** (Invoice **after** Payment; locked 2026-08-03). **Commission** as a first-class object is **re-lock 2026-08-17** (CTV commission engine not confirmed).
+- CTV **restricted portal / assigned customers / Contract Request** (locked 2026-08-03) is **SUPERSEDED** by 2026-08-17: no CTV operational masters; Finance thu/chi or note only — **pending Scope re-lock**
+- Stack: Modular monolith; NestJS BFF + Supabase Auth; Prisma → Supabase PostgreSQL; StoragePort (Supabase Storage and/or MinIO adapter); Redis + BullMQ; Next.js; Docker Compose for local/dev foundation. Production hosting (Vercel + Railway vs Compose) remains the Phase 01 contract unless re-locked.
 
 ## 4. Design
 
@@ -45,15 +61,15 @@ Stakeholders locked the following MVP constraints on 2026-08-02:
 | Module | MVP capability |
 |--------|----------------|
 | Lead | Separate entity; qualify toward Customer |
-| Customer | Individual and Company; exactly one primary Owner; optional Followers |
+| Customer | Individual and Company; exactly one primary Owner; optional Followers; industry/field + operational export (used service); extra date **OPEN** |
 | Contact | People linked to Customer (and Lead where applicable) |
 
 #### Legal
 
 | Module | MVP capability |
 |--------|----------------|
-| Contract Management | Full status lifecycle (see Business Rules) |
-| Workflow / Kanban | Configurable templates (admin-defined); no BPMN |
+| Contract Management | Full status lifecycle (see Business Rules); **unique contract number** |
+| Workflow / Kanban | Configurable templates and **configurable columns** (admin/authorized users); no BPMN; columns are data not a hard-coded enum |
 | File Management | Upload/download via StoragePort (MVP: Supabase Storage); attach to domain records |
 | Timeline / Activity | Chronological activity feed for relevant entities |
 
@@ -61,19 +77,20 @@ Stakeholders locked the following MVP constraints on 2026-08-02:
 
 | Module | MVP capability |
 |--------|----------------|
-| Order | Financial transaction generated from a Contract |
+| Order | Financial transaction from a Contract; **validity period**; configurable expiry alert (N months) |
 | Payment Schedule | Planned installments / dues against an Order |
-| Payment | Cash, Bank Transfer, QR; partial payments; occurs **before** VAT Invoice |
+| Payment | Cash, Bank Transfer, QR; partial payments; occurs **before** VAT Invoice; SePay via **PaymentProviderPort** if pulled into MVP |
 | Debt | Remaining obligation after payments |
-| VAT Invoice | Issued **after** Payment (sources may still reference Contract / Milestone / Manual) |
+| VAT Invoice | Issued **after** Payment; **invoice alerts** (Communication) |
 | VAT | 10% exclusive (MVP fixed rate) |
+| Thu / Chi | Staff income/expense tabs; **Chi requires approval**; persistence model **OPEN** |
 
-#### Commission
+#### Commission / CTV
 
 | Module | MVP capability |
 |--------|----------------|
-| Commission | Percentage of collected payment; rate configurable |
-| Collaborator (CTV) | Referral partner; limited Collaboration portal (see below) |
+| Commission | **Re-lock** — percentage of collected payment only if still required; not a CTV portal |
+| Collaborator (CTV) | **SUPERSEDED 2026-08-17** — no portal; Finance thu/chi or note only |
 
 #### System
 
@@ -95,22 +112,9 @@ Stakeholders locked the following MVP constraints on 2026-08-02:
 | Legal Assistant | Support legal operations |
 | Accounting | Orders, schedules, payments, VAT invoices, debt |
 | Sales | Leads, customers, pipeline-related work |
-| Collaborator (CTV) | Restricted Collaboration portal only |
+| Collaborator (CTV) | **Not an MVP actor** unless S6 is reversed (2026-08-17) |
 
-CTV **can** (Collaboration expansion — locked 2026-08-03):
-
-- Log in to limited portal
-- View own referrals
-- Manage **assigned** customers (scoped — not full CRM)
-- Submit **Contract Requests** (staff must approve before official Contract)
-- View own commission
-- Update profile
-
-CTV **cannot**:
-
-- Create official Contracts unilaterally
-- Access full staff CRM / Legal / Finance modules
-- View other CTVs’ commissions or unscoped customer lists
+Previous CTV portal can/cannot list (2026-08-03) is **SUPERSEDED**. Do not implement assigned customers, Contract Request, or CTV commission views.
 
 ### 4.3 Platform & delivery scope
 
@@ -140,14 +144,14 @@ CTV **cannot**:
 | English UI | Phase 2 |
 | Practice-area modules (Labor, Civil, Business, IP, Litigation) | Roadmap |
 | BPMN engine | Keep template-based workflow |
-| Payment gateways (VNPay, MoMo, Stripe) | Roadmap |
+| Payment gateways (VNPay, MoMo, Stripe) | Roadmap — **SePay is a separate MVP candidate** (boundary OPEN) |
 | Multi-currency transactions | Design for readiness; VND only in MVP |
 | Advanced commission (tier, shared, team) | Roadmap |
 | Kubernetes production | K8s-ready design later |
-| Docker Compose on VPS as MVP hosting | Deferred to post-MVP; Vercel + Railway for MVP |
-| MinIO as MVP storage | Deferred; StoragePort allows MinIO/R2 later |
+| Docker Compose on VPS as MVP **production** hosting | Phase 01: Vercel + Railway; Compose = local/dev + post-MVP path |
+| MinIO as the **only** production storage | StoragePort may add a MinIO adapter (local/dev); production adapter re-lock if replacing Supabase Storage |
 | Renaming Order → Matter | Rejected; Order stays |
-| Full CRM access for CTV | Portal only |
+| CTV portal / full CRM for CTV | **Removed pending re-lock** (2026-08-17) |
 | Client calling Supabase for business APIs | Forbidden; NestJS is the only business API |
 
 ### 4.5 Scope diagram
@@ -158,8 +162,7 @@ flowchart TB
     Core[Auth / RBAC / Users]
     CRM[Lead / Customer / Contact]
     Legal[Contract / Workflow / Files / Timeline]
-    Fin[Order / Schedule / Payment / Debt / VAT_Invoice]
-    Comm[Commission / CTV Portal]
+    Fin[Order / Schedule / Payment / Debt / VAT_Invoice / Thu_Chi]
     Sys[Dashboard / Notification / Email / Config]
   end
 
@@ -186,12 +189,14 @@ flowchart TB
 7. **Invoice sources** (what the invoice may reference): Contract, Milestone, or Manual — timing remains after Payment.
 8. **VAT**: 10%, tax-exclusive, MVP.
 9. **Payments**: Cash, Bank Transfer, QR; partial payments allowed.
-10. **Commission base**: actual collected payment amount only.
-11. **Commission formula (MVP)**: configurable percentage of collected payment.
+10. **Commission base** (if Commission is kept): actual collected payment amount only.
+11. **Commission formula (MVP)** (if kept): configurable percentage of collected payment.
 12. **Currency**: VND only in MVP.
-13. **Workflow**: admin-configurable templates with Tasks, Due Date, Reminder, Assignee; no BPMN.
-14. **CTV Collaboration (locked 2026-08-03):** portal may manage assigned customers and submit Contract Requests; staff approval required before Official Contract; no full CRM.
-15. Features listed in section 4.4 must not be implemented as MVP deliverables without Scope revision.
+13. **Workflow**: admin-configurable templates with Tasks, Due Date, Reminder, Assignee; **configurable Kanban columns** as data; no BPMN.
+14. **CTV (2026-08-17):** no operational CTV portal; CTV-related money is Finance thu/chi or note only — **re-lock required**. 2026-08-03 portal list is SUPERSEDED.
+15. **Contract number** is unique (DB constraint required).
+16. **Order** has a validity period; expiry alert N months is configurable.
+17. Features listed in section 4.4 must not be implemented as MVP deliverables without Scope revision.
 
 ## 6. Best Practices
 
@@ -208,9 +213,11 @@ flowchart TB
 | “Sales converts qualified lead to company customer with owner.” | In scope |
 | “Accounting records partial bank transfer against invoice.” | In scope |
 | “Admin creates a workflow template with 5 stages and tasks.” | In scope |
-| “CTV logs in and edits another lawyer’s contract.” | Out of scope (forbidden) |
+| “CTV logs in and edits another lawyer’s contract.” | Out of scope (forbidden) — portal itself pending removal |
+| “Accounting records Chi and Nhi approves.” | In scope capability; model OPEN |
 | “Support USD invoices in MVP.” | Out of scope |
 | “Integrate MoMo checkout in MVP.” | Out of scope |
+| “SePay payment + invoice in MVP.” | Candidate — boundary OPEN |
 
 ## 8. Future Improvements
 
@@ -236,9 +243,11 @@ Tracked in `Roadmap.md`. Scope document should be revised when a future item is 
 
 ## TODO
 
+- [x] Record 2026-08-17 stakeholder scope changes (CTV, Thu/Chi, SePay, Kanban, contract number, Order expiry)  
+- [ ] Re-lock S6 CTV removal vs restore portal  
 - [ ] Detail which Cancelled transitions are legal from each contract status (domain phase)
 - [ ] Define Lead mandatory fields and qualification checklist
 - [ ] Define Follower permissions vs Owner permissions
 - [ ] Define Dashboard widgets per role
-- [ ] Confirm Resend templates list (auth, notification, payment receipts, etc.)
+- [ ] Confirm Resend templates list (auth, notification, payment receipts, invoice/expiry alerts)
 - [ ] Confirm whether Contact can exist on Lead before Customer conversion

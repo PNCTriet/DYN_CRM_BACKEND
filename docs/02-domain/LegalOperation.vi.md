@@ -2,6 +2,8 @@
 
 > Bản tiếng Việt của [LegalOperation.md](./LegalOperation.md). Canonical: English.
 
+**2026-08-17:** Số hợp đồng **không trùng** (unique DB, không chỉ validate app). Kanban được thêm/sửa cột bởi user được phép — cột là **data**, không Prisma enum. **Không gộp** Contract Status (vòng đời pháp lý) với Workflow Stage trừ khi khóa. **OPEN schema-critical:** cột Kanban là Stage hay Status hợp đồng? Số HĐ nhập tay hay sinh? Portal CTV / Contract Request **SUPERSEDED**.
+
 ## 1. Mục đích
 
 Định nghĩa năng lực **Legal Operation**: vòng đời Contract chính thức, Workflow/Kanban cấu hình được (không BPMN), Task, Document, Timeline giao hàng pháp lý.
@@ -108,19 +110,25 @@ flowchart TD
 
 ## 13. Open Questions
 
-1. Ma trận Cancelled?  
-2. Rule Completed vs workflow?  
-3. Signal finance nào trong template MVP?  
-4. Template mặc định tư vấn tổng quát?  
-5. Nhiều workflow / Contract?  
-6. Chính sách lưu trữ/version tài liệu?
+1. **Cột Kanban là Workflow Stage hay status vòng đời Contract?** (schema-critical)  
+2. Nếu Contract Status cấu hình được — đây là đổi rule Glossary §4.3.  
+3. Số hợp đồng: **nhập tay** hay **sinh**? (tính duy nhất đã khóa)  
+4. Ma trận Cancelled?  
+5. Rule Completed vs workflow?  
+6. Nhiều workflow / Contract?  
+7. Signal finance nào trong template MVP?  
+8. Template mặc định tư vấn tổng quát?  
+9. Chính sách lưu trữ/version tài liệu?
 
 ## 14. TODO
 
+- [ ] Khóa Kanban = Stage vs Status  
+- [ ] Khóa cấp số hợp đồng (manual vs generated)  
 - [ ] Khóa ma trận Cancelled  
 - [ ] Khóa rule Contract↔Workflow  
 - [ ] Công bố template MVP mặc định  
-- [ ] Xác nhận Sepay chỉ future  
+- [x] Invariant số HĐ unique (2026-08-17)  
+- [x] Cột Kanban cấu hình được (data, không Prisma enum) — chờ khóa Stage vs Status
 
 ## 15. Aggregate Boundaries
 

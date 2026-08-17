@@ -21,7 +21,9 @@ Audience: architects, tech leads, backend/frontend engineers, and reviewers of P
 
 ## 3. Background
 
-Phase 00 locked product scope for a law-firm CRM: Lead → Customer → Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice → Commission (invoice after payment), configurable workflows, CTV Collaboration portal (expanded), Vietnamese UI, single-tenant MVP.
+Phase 00 locked product scope for a law-firm CRM: Lead → Customer → Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice (invoice after payment), configurable workflows, Vietnamese UI, single-tenant MVP.
+
+**2026-08-17:** CTV Collaboration portal is **SUPERSEDED** pending Scope re-lock. SePay is an MVP **candidate** behind **PaymentProviderPort**. Commission object is **re-lock**. Architecture style is unchanged.
 
 Infrastructure choices were revised for Phase 01 and synced into Phase 00 platform rows:
 
@@ -61,7 +63,7 @@ One deployable backend codebase with explicit internal modules. No microservice 
 - NestJS implements an **AuthPort**; the Supabase Auth adapter is one implementation.
 - Clients **must not** call Supabase for business data or as the authorization authority.
 - NestJS validates the access token on protected routes and applies **RBAC + permissions** locally.
-- CTV restricted portal is enforced in NestJS, not by Supabase dashboard rules alone.
+- Any future partner portal would be enforced in NestJS — the 2026-08-03 CTV portal is **not** in the implementation path unless Scope restores it.
 
 ### AD-A4 — Authorization stays in NestJS
 
@@ -82,12 +84,13 @@ Mandatory ports (logical names):
 | MailPort | Resend | Other transactional email |
 | CachePort | Redis | In-memory (dev), other cache |
 | QueuePort | BullMQ on Redis | Other job runner |
+| PaymentProviderPort | SePay adapter **candidate** (MVP boundary OPEN) | Other PSPs later |
 
-Domain modules depend on ports, never on vendor SDKs.
+Domain modules depend on ports, never on vendor SDKs. Finance must not import SePay types.
 
 ### AD-A7 — Async work on Railway
 
-Reminders, notification fan-out, commission calculation after collected payment, and outbound email are processed by `apps/worker` via BullMQ. Worker reuses application/domain services; business rules are not duplicated in the frontend.
+Reminders, notification fan-out, optional commission calculation after collected payment, outbound email, Order-expiry and invoice alert jobs are processed by `apps/worker` via BullMQ. Worker reuses application/domain services; business rules are not duplicated in the frontend.
 
 ### AD-A8 — Monorepo deployables
 
@@ -172,10 +175,7 @@ flowchart LR
     Invoice[Invoice]
     Payment[Payment]
     VAT[VAT]
-  end
-  subgraph commission [Commission]
-    Comm[Commission]
-    CTV[CTV Portal]
+    ThuChi[Thu_Chi]
   end
   subgraph system [System]
     Dash[Dashboard]
@@ -187,11 +187,12 @@ flowchart LR
   Customer --> Contract
   Contract --> Order
   Order --> Invoice
-  Invoice --> Payment
-  Payment --> Comm
+  Payment --> Invoice
   Contract --> Workflow
   Contract --> Files
 ```
+
+> Invoice remains **after** Payment (2026-08-03). Diagram 5.2 previously showed Invoice → Payment; that edge is **incorrect** for the locked chain.
 
 ### 5.3 Authentication BFF sequence
 

@@ -5,7 +5,9 @@
 
 ## 1. Purpose
 
-Define the security architecture for DYN CRM: authentication (NestJS BFF + Supabase Auth), authorization (NestJS RBAC + permissions), identity mapping, session contract, CTV isolation, and baseline audit — without prescribing implementation code or inventing unfinished domain permissions.
+Define the security architecture for DYN CRM: authentication (NestJS BFF + Supabase Auth), authorization (NestJS RBAC + permissions), identity mapping, session contract, and baseline audit — without prescribing implementation code or inventing unfinished domain permissions.
+
+**2026-08-17:** CTV portal isolation is **not** an implementation requirement unless Scope S6 is reversed. Deny-unknown-permission and disabled-user rules still apply.
 
 ## 2. Scope
 

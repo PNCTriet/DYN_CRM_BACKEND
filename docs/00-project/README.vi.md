@@ -21,7 +21,7 @@ Thư mục này là điểm vào duy nhất cho tài liệu cấp dự án của
 
 ## 3. Bối cảnh
 
-DYN CRM là hệ thống kiểu CRM/ERP cho **văn phòng luật**. Quản lý khách hàng và lead, hợp đồng pháp lý, workflow cấu hình được, tài chính (order → invoice → payment), VAT, hoa hồng CTV, dashboard và thông báo.
+DYN CRM là hệ thống kiểu CRM/ERP cho **văn phòng luật**. Quản lý khách hàng và lead, hợp đồng pháp lý, workflow cấu hình được, tài chính (order → payment → invoice), VAT, dashboard và thông báo. Portal CTV **SUPERSEDED 2026-08-17** chờ khóa lại.
 
 | Thuộc tính | Quyết định (đã khóa) |
 |------------|----------------------|

@@ -21,7 +21,9 @@
 
 ## 3. Bối cảnh
 
-Phase 00 đã khóa phạm vi sản phẩm CRM văn phòng luật: Lead → Customer → Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice → Commission (hóa đơn sau payment), workflow cấu hình được, portal Collaboration CTV (đã mở rộng), UI tiếng Việt, single-tenant MVP.
+Phase 00 đã khóa phạm vi CRM văn phòng luật: Lead → Customer → Contract → Order → Payment Schedule → Payment → Debt → VAT Invoice (hóa đơn sau payment), workflow cấu hình được, UI tiếng Việt, single-tenant MVP.
+
+**2026-08-17:** Portal Collaboration CTV **SUPERSEDED** chờ khóa Scope. SePay là **candidate** MVP sau **PaymentProviderPort**. Commission **khóa lại**. Kiểu kiến trúc không đổi.
 
 Lựa chọn hạ tầng được điều chỉnh ở Phase 01 và đã đồng bộ vào dòng platform Phase 00:
 
@@ -82,8 +84,9 @@ Port bắt buộc (tên logic):
 | MailPort | Resend | Email giao dịch khác |
 | CachePort | Redis | In-memory (dev), cache khác |
 | QueuePort | BullMQ trên Redis | Job runner khác |
+| PaymentProviderPort | Adapter SePay **candidate** (biên MVP OPEN) | PSP khác sau |
 
-Module domain phụ thuộc port, không phụ thuộc vendor SDK.
+Module domain phụ thuộc port, không phụ thuộc vendor SDK. Finance không import kiểu SePay.
 
 ### AD-A7 — Việc async trên Railway
 

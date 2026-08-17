@@ -16,7 +16,7 @@ Mô tả bối cảnh nghiệp vụ, các actor, và value stream end-to-end mà
 
 ## 3. Bối cảnh
 
-DYN CRM phục vụ **văn phòng luật** cung cấp **tư vấn pháp lý tổng quát** trong MVP. Cần phối hợp sales, giao hàng pháp lý, kế toán, quản lý, và CTV (đối tác giới thiệu).
+DYN CRM phục vụ **văn phòng luật** cung cấp **tư vấn pháp lý tổng quát** trong MVP. Cần phối hợp sales, giao hàng pháp lý, kế toán, quản lý. Portal CTV **SUPERSEDED (2026-08-17)**; tiền CTV (nếu có) là thu/chi hoặc note Finance.
 
 Quy mô ước lượng: **~30 user đồng thời**, triển khai single-tenant.
 
@@ -33,7 +33,7 @@ Quy mô ước lượng: **~30 user đồng thời**, triển khai single-tenant
 | Lawyer | Giao hàng pháp lý | Contract, workflow, file, timeline |
 | Legal Assistant | Hỗ trợ giao hàng | Task, file, dữ liệu hỗ trợ khách |
 | Accounting | Tài chính | Order, invoice, VAT, payment |
-| Collaborator (CTV) | Đối tác giới thiệu ngoài | Portal Collaboration: khách gán, Contract Request, referral, hoa hồng, hồ sơ |
+| Collaborator (CTV) | Đối tác ngoài (lịch sử) | **Không phải actor hệ thống** trừ khi S6 đảo; tiền qua Finance |
 
 ### 4.2 Đối tượng nghiệp vụ lõi (canonical)
 
@@ -107,13 +107,9 @@ flowchart TD
 
 Hóa đơn VAT tạo **sau** Payment. Invoice vẫn có thể tham chiếu Contract, Milestone, hoặc Manual.
 
-#### VS-4: Hoa hồng CTV
+#### VS-4: Tiền CTV (2026-08-17)
 
-1. CTV giới thiệu / được gán khách (chi tiết linkage ở Collaboration domain).
-2. CTV có thể gửi Contract Request; nhân sự duyệt → Official Contract.
-3. Customer/contract/payment diễn ra trong CRM (role nhân sự).
-4. Khi có **thanh toán đã thu**, engine hoa hồng áp dụng **% cấu hình được**.
-5. CTV chỉ xem hoa hồng (và dữ liệu portal trong scope) của mình.
+Không funnel portal. Nếu có tiền liên quan CTV, kế toán ghi **Thu/Chi hoặc note** trong Finance. Ngữ nghĩa (thu vs chi vs note) vẫn **Open Question**. Không implement Contract Request hay portal hoa hồng.
 
 ### 4.4 Giả định tổ chức (đã khóa)
 
@@ -132,7 +128,8 @@ Hóa đơn VAT tạo **sau** Payment. Invoice vẫn có thể tham chiếu Contr
 3. Contract là pháp lý; Order là tài chính; không dùng một từ cho cả hai.
 4. Thanh toán có thể một phần; màn hình finance phải hiện số còn lại (cách tính ở domain/finance docs).
 5. MVP không tính hoa hồng từ số chưa thu trên invoice hay giá trị hợp đồng thô.
-6. CTV không thao tác full CRM/Legal/Finance nhân sự; chỉ portal Collaboration (cho phép khách gán + Contract Request).
+6. Portal CTV **ngoài MVP** chờ khóa lại Scope (2026-08-17).  
+7. Chính sách chưa xác nhận (giảm giá, refund, credit note, HĐĐT, lưu Thu/Chi) **không** thành rule cho đến khi quyết.
 7. Chính sách chưa xác nhận (giảm giá, hoàn tiền, credit note, xuất HĐĐT) **chưa nằm trong rule đã tài liệu hóa**.
 
 ## 6. Best practices
@@ -158,8 +155,8 @@ Sales tạo Lead “Nguyễn Văn A”, qualify, convert thành Customer (Indivi
 **Ví dụ B — Khách công ty**  
 Customer loại Company với Contact (người ký, kế toán). Cùng chuỗi contract/finance. Follower gồm Legal Assistant.
 
-**Ví dụ C — CTV**  
-CTV vào portal Collaboration, quản lý khách được gán, có thể gửi Contract Request, xem hoa hồng từ tiền đã thu. Mở danh sách Contract nhân sự hoặc tự tạo Official Contract bị từ chối.
+**Ví dụ C — CTV (lịch sử, không implement)**  
+Portal 2026-08-03 **SUPERSEDED**. Chỉ ghi tiền CTV ở Finance nếu cần.
 
 ## 8. Cải tiến tương lai
 
@@ -191,7 +188,7 @@ CTV vào portal Collaboration, quản lý khách được gán, có thể gửi 
 
 - [ ] Xác nhận tên pháp lý và branding văn phòng luật
 - [ ] Xác nhận mapping field Lead → Customer khi convert
-- [ ] Xác nhận CTV gắn vào Lead / Customer / Contract / Payment thế nào
+- [ ] Khóa lại việc gỡ CTV (S6) vs khôi phục portal
 - [ ] Xác nhận chính sách hoàn tiền / credit note / void invoice (nếu có)
 - [ ] Xác nhận nhu cầu tích hợp HĐĐT
 - [ ] Khóa ma trận chuyển Cancelled cho Contract

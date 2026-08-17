@@ -2,6 +2,12 @@
 
 > Bản tiếng Việt của [Finance.md](./Finance.md). Canonical: English.
 
+## Khóa lại stakeholder — 2026-08-17
+
+Tab **Thu/Chi** = SCOPE CHANGE (mô hình **OPEN**). Duyệt **chỉ Chi** (Nhi) — identity **OPEN**. Status đơn hàng **chưa liệt kê**. Thời hạn đơn hàng + alert N tháng = **CONFIRMED**. SePay + invoice = candidate MVP (**OPEN** biên). Alert hóa đơn = **CONFIRMED**. Tiền CTV = thu/chi hoặc note (**OPEN** ngữ nghĩa). Commission **khóa lại**. Invoice sau Payment vẫn **LOCKED**. Không gắn Finance vào SDK SePay — dùng PaymentProviderPort.
+
+Chi tiết đầy đủ (Order expiry §24, Thu/Chi §25, SePay §26, invoice alert §27): bản English.
+
 ## 1. Mục đích
 
 Định nghĩa năng lực **Finance**: moneti hóa từ Contract qua Order, lịch thanh toán, payment, nợ, hóa đơn VAT, hoa hồng trên tiền đã thu.
@@ -187,5 +193,21 @@ flowchart TD
 | | Domain |
 |--|--------|
 | **Phụ thuộc** | Identity, LegalOperation (Contract), CRM (tham chiếu Customer) |
-| **Cung cấp cho** | Legal (tín hiệu payment/invoice), Collaboration (commission), Communication, Dashboard |
-| **Không sở hữu** | Vòng đời Contract, master Customer |
+| **Cung cấp cho** | Legal (tín hiệu payment/invoice), Communication, Dashboard |
+| **Không sở hữu** | Vòng đời Contract, master Customer, notification, API SePay |
+
+## 24. Hết hạn đơn hàng (CONFIRMED)
+
+Order sở hữu ngày hiệu lực. Alert **N tháng** trước hết hạn; **N cấu hình được**. Finance emit `OrderExpiringSoon`; Communication gửi. OPEN: start/end bắt buộc? status Expired? gia hạn? global vs per-Order N? ai nhận?
+
+## 25. Thu / Chi — phân tích, chưa khóa sổ
+
+Option A (nên thảo luận): Thu ≈ Payment; Chi ≈ Expense tường minh (kể cả CTV). Option B: FinancialTransaction đầy đủ (rủi ro nhân đôi). Option C: chỉ note CTV. **OPEN.** Không tạo bảng ledger generic trước khi khóa. Không bịa chart of accounts.
+
+## 26. SePay + Invoice (SCOPE CHANGE candidate)
+
+Payment / verify / invoice thuộc Finance. Provider id opaque qua **PaymentProviderPort**. OPEN: initiate / detect / verify / webhook / tất cả?
+
+## 27. Alert hóa đơn (CONFIRMED)
+
+`InvoiceIssued` luôn khi có hóa đơn. `InvoiceDueSoon` chỉ nếu có due date. `InvoiceOverdue` **OPEN**. Kênh/người nhận: không schema-critical.

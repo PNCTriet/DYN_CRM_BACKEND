@@ -3,6 +3,8 @@
 > Bản tiếng Việt của [Module.md](./Module.md).  
 > **Nguồn kỹ thuật chuẩn (canonical):** bản English. Đồng bộ EN và VI trong cùng một thay đổi.
 
+**2026-08-17:** Không implement module portal CTV / Commission riêng đến khi S6 đảo. Hoa hồng (nếu còn) là application service trong Finance. Xem bản English AD-M1.
+
 ## 1. Mục đích
 
 Định nghĩa bounded context trong modular monolith DYN CRM: mỗi module sở hữu gì, expose gì, được phụ thuộc thế nào, và cross-cutting nằm đâu — **không bịa** business rule chưa khóa.
