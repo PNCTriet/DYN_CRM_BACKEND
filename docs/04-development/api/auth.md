@@ -108,11 +108,31 @@ FE  →  GET /auth/oauth/google?redirectTo=<FE_callback>
 
 ### Setup (một lần — BE / Dashboard)
 
-1. Google Cloud Console → OAuth 2.0 Client (Web) → Client ID + Secret.  
-2. Supabase → Authentication → Providers → **Google** → bật + dán credentials.  
-3. Supabase → URL Configuration → Redirect URLs thêm:
-   - `http://localhost:3000/api/v1/auth/oauth/callback`
-4. Backend `.env`: `OAUTH_REDIRECT_ALLOW_PREFIX`, `OAUTH_SUCCESS_REDIRECT_URL` (xem bảng Env).
+1. **Google Cloud Console** → OAuth 2.0 Client (Web) → Client ID + Secret.  
+   Authorized redirect URI **chỉ có một** — của Supabase, không phải của Nest:
+   ```
+   https://<PROJECT_REF>.supabase.co/auth/v1/callback
+   ```
+2. **Supabase → Authentication → Providers → Google** → bật + dán Client ID/Secret.
+3. **Supabase → Authentication → URL Configuration → Redirect URLs** — thêm callback của Nest cho **mọi môi trường** (thiếu bước này thì Supabase chặn redirect cuối):
+   ```
+   http://localhost:3000/api/v1/auth/oauth/callback
+   https://apidyn.otcayxe.com/api/v1/auth/oauth/callback
+   ```
+4. **Env backend** (`.env` local + Railway Variables cho prod):
+
+| Env | Local | Production |
+|-----|-------|------------|
+| `API_PUBLIC_URL` | `http://localhost:3000` | `https://apidyn.otcayxe.com` |
+| `OAUTH_REDIRECT_ALLOW_PREFIX` | `http://localhost:3001` | `https://crm-dny-ui-sepia.vercel.app` |
+| `OAUTH_SUCCESS_REDIRECT_URL` | `http://localhost:3001/auth/callback` | `https://crm-dny-ui-sepia.vercel.app/auth/callback` |
+
+Allow-list nhận nhiều prefix ngăn cách bằng dấu phẩy, hữu ích khi vừa test local vừa test domain preview:
+`OAUTH_REDIRECT_ALLOW_PREFIX="https://crm-dny-ui-sepia.vercel.app,http://localhost:3001"`
+
+`API_PUBLIC_URL` quyết định callback URL Nest gửi cho Supabase — phải trùng chính xác một dòng trong Redirect URLs ở bước 3.
+
+FE và BE khác domain vẫn chạy được: cookie PKCE (`SameSite=Lax`, `Secure` khi `NODE_ENV=production`) được gửi kèm vì callback là điều hướng GET top-level.
 
 ### GET `/auth/oauth/google`
 
