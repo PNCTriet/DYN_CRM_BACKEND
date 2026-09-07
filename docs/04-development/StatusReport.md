@@ -20,8 +20,8 @@
 | Production Auth (chỉ JWT, tắt test tokens) | Cấu hình `AUTH_MODE=supabase` khi sẵn sàng |
 
 **Build:** `pnpm --filter @dyn-crm/backend build` — **PASS**  
-**Swagger:** http://localhost:3000/docs  
-**FE docs:** `docs/04-development/api/`
+**Swagger:** https://apidyn.otcayxe.com/docs (local: http://localhost:3000/docs)  
+**FE docs:** `docs/04-development/api/` · integrate prompt: [`FRONTEND_INTEGRATION_PROMPT.md`](./api/FRONTEND_INTEGRATION_PROMPT.md)
 
 ---
 

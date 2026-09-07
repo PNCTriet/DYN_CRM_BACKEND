@@ -75,8 +75,10 @@ Authorization: Bearer <accessToken>
 
 FE: nếu `requiresEmailConfirmation === true` → hiện “check email”, chưa lưu token.
 
-**Dev tip (Swagger test nhanh):**  
+| Dev tip (Swagger test nhanh):  
 Supabase Dashboard → **Authentication** → **Providers** → **Email** → tắt **Confirm email** → signup email mới → nhận `accessToken` ngay.
+
+**Production base:** `https://apidyn.otcayxe.com/api/v1` · Swagger: https://apidyn.otcayxe.com/docs
 
 **Errors:** `400` validation / Supabase; `409` email already registered
 

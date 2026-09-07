@@ -70,6 +70,10 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document, {
     jsonDocumentUrl: 'docs-json',
+    customSiteTitle: 'DYN CRM API',
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
   });
 
   const port = Number(process.env.PORT ?? 3000);
