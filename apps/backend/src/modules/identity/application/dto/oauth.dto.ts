@@ -33,5 +33,16 @@ export class OAuthCallbackQueryDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  error_code?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   error_description?: string;
+
+  /** Supabase appends `sb` on error redirects. */
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  sb?: string;
 }

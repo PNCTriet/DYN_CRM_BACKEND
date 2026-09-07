@@ -11,6 +11,7 @@ import {
   Res,
   UnauthorizedException,
   UseGuards,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -90,7 +91,10 @@ export class AuthController {
     summary: 'OAuth callback (Supabase → Nest → FE hash tokens)',
   })
   async oauthCallback(
-    @Query() query: OAuthCallbackQueryDto,
+    // Supabase may append provider-specific params; unknown ones must not 400
+    // the browser mid-redirect — errors have to reach the FE callback page.
+    @Query(new ValidationPipe({ whitelist: true, transform: true }))
+    query: OAuthCallbackQueryDto,
     @Req() req: Request,
     @Res() res: Response,
   ) {
