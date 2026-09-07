@@ -15,8 +15,10 @@ loadEnv({
 });
 
 function assertRequiredEnv(): void {
-  const required = ['DATABASE_URL', 'SUPABASE_URL'] as const;
-  const missing = required.filter((k) => !process.env[k]?.trim());
+  const missing: string[] = [];
+  for (const k of ['DATABASE_URL', 'SUPABASE_URL'] as const) {
+    if (!process.env[k]?.trim()) missing.push(k);
+  }
   const hasAuthKey = Boolean(
     process.env.SUPABASE_PUBLISHABLE_KEY?.trim() ||
       process.env.SUPABASE_ANON_KEY?.trim(),
@@ -25,7 +27,6 @@ function assertRequiredEnv(): void {
     missing.push('SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY)');
   }
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
-    // Storage needs this in production; warn loudly but do not block if publishable exists
     // eslint-disable-next-line no-console
     console.warn(
       '[boot] SUPABASE_SERVICE_ROLE_KEY is missing — document upload to private buckets will fail',
