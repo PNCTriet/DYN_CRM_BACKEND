@@ -1,0 +1,11 @@
+# Railway / Nixpacks — monorepo backend
+# Ensures Prisma Client is generated before nest build (custom UI build cmds often skip package.json scripts).
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "pnpm install --frozen-lockfile && pnpm --filter @dyn-crm/backend run prisma:generate && pnpm --filter @dyn-crm/backend exec nest build"
+
+[deploy]
+startCommand = "pnpm --filter @dyn-crm/backend start:prod"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

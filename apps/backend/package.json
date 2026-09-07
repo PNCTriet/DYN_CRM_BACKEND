@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "prisma generate && nest build",
+    "build": "pnpm run prisma:generate && nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
-    "postinstall": "prisma generate",
+    "postinstall": "pnpm run prisma:generate",
     "test": "jest",
     "test:watch": "jest --watch",
-    "prisma:generate": "prisma generate",
+    "prisma:generate": "sh scripts/prisma-generate.sh",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio"

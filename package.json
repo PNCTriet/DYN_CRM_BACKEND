@@ -4,7 +4,7 @@
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev:backend": "pnpm --filter @dyn-crm/backend start:dev",
-    "build:backend": "pnpm --filter @dyn-crm/backend build",
+    "build:backend": "pnpm --filter @dyn-crm/backend run prisma:generate && pnpm --filter @dyn-crm/backend exec nest build",
     "test:backend": "pnpm --filter @dyn-crm/backend test",
     "prisma:generate": "pnpm --filter @dyn-crm/backend prisma:generate",
     "prisma:migrate": "pnpm --filter @dyn-crm/backend prisma:migrate"
