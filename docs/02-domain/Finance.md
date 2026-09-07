@@ -1,6 +1,52 @@
 # Finance — DYN CRM
 
-> Vietnamese version: [Finance.vi.md](./Finance.vi.md)
+> Vietnamese: [Finance.vi.md](./Finance.vi.md)  
+> DB contract: `orders`, `payment_*`, `payments`, `vat_invoices`, `expenses`, `commissions` — see SchemaDesign.
+
+## Re-lock 2026-09-05
+
+| Topic | Status |
+|-------|--------|
+| Commission table | **In schema** — based on collected payment |
+| Expense | **Order-scoped**; PENDING/APPROVED/REJECTED |
+| Debt table | **None** — derived outstanding |
+| Income table | **None** — Thu ≈ payments |
+| Order | Rich operational fields; `stage` text (not enum) |
+| Service | Order.service_id; agreed value on Order ≠ service.unit_price |
+| Payment ↔ Invoice | payment_id nullable; not forced 1:1 |
+| VAT | DRAFT/ISSUED/CANCELLED; issue_date nullable in DRAFT |
+| SePay | Opaque provider* on payments only |
+
+## 1. Purpose
+
+Monetize legal work: Order → schedule → Payment → VAT Invoice; Expense (Chi); Commission on collected payment; CTV attribution via `orders.collaborator_id`.
+
+Invoice **after** Payment remains the business rule for **issue**; DRAFT invoice may exist earlier (OPEN whether Payment required before DRAFT).
+
+## 2. Chain
+
+```text
+Contract → Order (+ Service, optional Collaborator)
+        → PaymentSchedule → Lines
+        → Payment (partial OK)
+        → VatInvoice (order required; payment optional FK)
+        → Commission (from payment)
+        → Expense (per order)
+```
+
+Outstanding = total_gross − sum(non-voided payments).
+
+## 3. Commands (API)
+
+`order.assign|change-stage|approve` · `payment.verify|void` · `vat.issue|cancel` · `expense.approve` · `commission.calculate|approve|pay`
+
+## 4. Open
+
+- Meaning of `orders.contract_number` (int) vs contracts.contract_number (text)  
+- Order stage catalog values  
+- Global vs per-order expiry N  
+- VAT rate flexibility vs fixed 10% MVP policy  
+
 
 ## Stakeholder re-lock — 2026-08-17
 

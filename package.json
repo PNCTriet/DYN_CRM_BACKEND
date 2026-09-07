@@ -1,0 +1,15 @@
+{
+  "name": "dyn-crm",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev:backend": "pnpm --filter @dyn-crm/backend start:dev",
+    "build:backend": "pnpm --filter @dyn-crm/backend build",
+    "test:backend": "pnpm --filter @dyn-crm/backend test",
+    "prisma:generate": "pnpm --filter @dyn-crm/backend prisma:generate",
+    "prisma:migrate": "pnpm --filter @dyn-crm/backend prisma:migrate"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -2,11 +2,11 @@
 
 > Vietnamese version: [ImplementationFoundation.vi.md](./ImplementationFoundation.vi.md)
 
-No application code in this document. Contracts only.
+Application code lives under `apps/backend`. This document remains the technical contract summary.
 
 ## 1. Goal
 
-Start Identity/RBAC and persistence from the Phase 03 draft ([SchemaDesign.md](./SchemaDesign.md)). Finance Prisma stays behind schema-critical locks. No CTV portal or SePay SDK in the domain.
+Start Identity/RBAC and persistence from the Phase 03 DB contract ([SchemaDesign.md](./SchemaDesign.md), [schema.sql](./schema.sql)). Authorization: [Authorization.md](../04-development/Authorization.md). Collaboration/CTV and Commission are **in scope** per the current DB contract (reintroduced 2026-09). No Payroll / Debt table / SePay-specific tables in MVP.
 
 ## 2. Supabase
 
@@ -22,23 +22,22 @@ Start Identity/RBAC and persistence from the Phase 03 draft ([SchemaDesign.md](.
 
 | Area | Contract |
 |------|----------|
-| Style | DDD-lite modules: Identity, CRM, Legal, Finance, System (Communication/Dashboard/Config) |
-| Layers | Application (use cases) → Domain (invariants/events) → Infrastructure (Prisma repos, ports) |
-| Prisma | Repositories in infrastructure; no Prisma types on module public APIs |
-| RBAC | Guards + `resource.action`; unknown permission ⇒ deny |
-| Config | Env + AppConfig for N-month expiry, feature flags (SePay on/off) |
-| Queue | QueuePort / BullMQ worker for mail, reminders, expiry/invoice alerts |
-| Payment | PaymentProviderPort; SePay adapter **behind the port** if MVP |
+| Style | DDD-lite modules: `identity`, `crm`, `service`, `collaboration`, `legal`, `finance`, `communication`, `system` |
+| Layers | `presentation` → `application` → `domain` → `infrastructure` (Prisma repos) |
+| API | Global prefix `/api/v1` |
+| Prisma | Repositories in infrastructure; no Prisma types on HTTP responses |
+| RBAC | AuthGuard → RbacGuard + `@RequirePermission` → Resource Policy (scope) |
+| Config | Env + `app_config` for flags |
+| Queue | QueuePort / BullMQ worker for mail, reminders (later) |
+| Payment | PaymentProviderPort only if gateway integration is re-locked |
 
-Do **not** add a Collaboration NestJS module until S6 is reversed.
+## 4. Implementation order
 
-## 4. First vertical slices (after schema baseline)
-
-1. Monorepo + NestJS + Prisma migrate (Identity tables)  
-2. Auth BFF + User mapping + RBAC guard  
-3. CRM Lead/Customer slice  
-4. Legal Contract (unique number) + configurable stages  
-5. Finance Order/Payment/Invoice  
+1. Foundation (bootstrap, Prisma, Auth/RBAC/policy) — **done in scaffold**  
+2. Identity management APIs  
+3. CRM Customer vertical slice — **first slice**  
+4. Lead / Contact / Followers / Notes / Activities / Import  
+5. Service → Legal → Finance → Collaboration → Communication/System 
 
 ## 5. Docker Compose (local)
 

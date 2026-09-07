@@ -1,0 +1,809 @@
+// DYN CRM — Prisma schema generated from docs/03-database/schema.sql (DBML)
+// Contract: SchemaDesign.md · DbReview.md
+// NEEDS CHANGE applied: contracts.contract_number @unique (soft-delete: enforce in app that deleted numbers may be reused only if product allows)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Supabase: use Session/Direct connection for migrate; Transaction pooler for runtime OK
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum CustomerType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum ContractStatus {
+  DRAFT
+  REVIEW
+  WAITING_CUSTOMER
+  SIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  QR_PAYMENT
+}
+
+enum PaymentVerificationStatus {
+  RECORDED
+  VERIFIED
+  VOIDED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  CANCELLED
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CommissionStatus {
+  PENDING
+  CALCULATED
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum CollaboratorStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ContractRequestStatus {
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  NEEDS_INFO
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id            String     @id @default(uuid()) @db.Uuid
+  authSubjectId String     @unique @map("auth_subject_id")
+  email         String?
+  displayName   String     @map("display_name")
+  phone         String?
+  dateOfBirth   DateTime?  @map("date_of_birth") @db.Date
+  address       String?
+  avatarUrl     String?    @map("avatar_url")
+  status        UserStatus
+  deletedAt     DateTime?  @map("deleted_at") @db.Timestamptz(6)
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  userRoles UserRole[]
+  ownedCustomers Customer[] @relation("CustomerOwner")
+  customerFollowers CustomerFollower[]
+  ownedLeads Lead[] @relation("LeadOwner")
+
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+  @@map("users")
+}
+
+model Role {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique
+  name      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  userRoles             UserRole[]
+  rolePermissionGroups  RolePermissionGroup[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  groupPermissions GroupPermission[]
+
+  @@map("permissions")
+}
+
+model PermissionGroup {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique
+  name      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  rolePermissionGroups RolePermissionGroup[]
+  groupPermissions     GroupPermission[]
+
+  @@map("permission_groups")
+}
+
+model UserRole {
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermissionGroup {
+  roleId            String   @map("role_id") @db.Uuid
+  permissionGroupId String   @map("permission_group_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  role            Role            @relation(fields: [roleId], references: [id])
+  permissionGroup PermissionGroup @relation(fields: [permissionGroupId], references: [id])
+
+  @@id([roleId, permissionGroupId])
+  @@unique([roleId, permissionGroupId])
+  @@map("role_permission_groups")
+}
+
+model GroupPermission {
+  permissionGroupId String   @map("permission_group_id") @db.Uuid
+  permissionId      String   @map("permission_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  permissionGroup PermissionGroup @relation(fields: [permissionGroupId], references: [id])
+  permission      Permission      @relation(fields: [permissionId], references: [id])
+
+  @@id([permissionGroupId, permissionId])
+  @@unique([permissionGroupId, permissionId])
+  @@map("group_permissions")
+}
+
+model Lead {
+  id                   String    @id @default(uuid()) @db.Uuid
+  source               String
+  status               String
+  ownerId              String?   @map("owner_id") @db.Uuid
+  convertedCustomerId  String?   @unique @map("converted_customer_id") @db.Uuid
+  name                 String?
+  phone                String?
+  email                String?
+  taxId                String?   @map("tax_id")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  owner             User?     @relation("LeadOwner", fields: [ownerId], references: [id])
+  convertedCustomer Customer? @relation(fields: [convertedCustomerId], references: [id])
+  contacts          Contact[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([phone])
+  @@index([email])
+  @@index([taxId])
+  @@map("leads")
+}
+
+model Customer {
+  id              String       @id @default(uuid()) @db.Uuid
+  type            CustomerType
+  ownerId         String       @map("owner_id") @db.Uuid
+  industryOrField String?      @map("industry_or_field")
+  legalName       String       @map("legal_name")
+  displayName     String       @map("display_name")
+  phone           String?
+  email           String?
+  taxId           String?      @map("tax_id")
+  deletedAt       DateTime?    @map("deleted_at") @db.Timestamptz(6)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId String?      @map("created_by_user_id") @db.Uuid
+  updatedByUserId String?      @map("updated_by_user_id") @db.Uuid
+
+  owner     User @relation("CustomerOwner", fields: [ownerId], references: [id])
+  contacts  Contact[]
+  followers CustomerFollower[]
+  leads     Lead[]
+  contracts Contract[]
+
+  @@index([ownerId])
+  @@index([phone])
+  @@index([email])
+  @@index([taxId])
+  @@map("customers")
+}
+
+model Contact {
+  id         String   @id @default(uuid()) @db.Uuid
+  customerId String?  @map("customer_id") @db.Uuid
+  leadId     String?  @map("lead_id") @db.Uuid
+  name       String
+  roleTitle  String?  @map("role_title")
+  phone      String?
+  email      String?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+  lead     Lead?     @relation(fields: [leadId], references: [id])
+
+  @@index([customerId])
+  @@index([leadId])
+  @@map("contacts")
+}
+
+model CustomerFollower {
+  customerId String   @map("customer_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@id([customerId, userId])
+  @@unique([customerId, userId])
+  @@map("customer_followers")
+}
+
+model Note {
+  id              String   @id @default(uuid()) @db.Uuid
+  subjectType     String   @map("subject_type")
+  subjectId       String   @map("subject_id") @db.Uuid
+  content         String
+  createdByUserId String   @map("created_by_user_id") @db.Uuid
+  updatedByUserId String   @map("updated_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([subjectType, subjectId])
+  @@map("notes")
+}
+
+model Activity {
+  id          String   @id @default(uuid()) @db.Uuid
+  subjectType String   @map("subject_type")
+  subjectId   String   @map("subject_id") @db.Uuid
+  type        String
+  payload     Json?
+  actorUserId String   @map("actor_user_id") @db.Uuid
+  occurredAt  DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([subjectType, subjectId])
+  @@index([occurredAt])
+  @@map("activities")
+}
+
+model ImportBatch {
+  id              String    @id @default(uuid()) @db.Uuid
+  fileRef         String?   @map("file_ref")
+  status          String
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  committedAt     DateTime? @map("committed_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  rows ImportRow[]
+
+  @@map("import_batches")
+}
+
+model ImportRow {
+  id               String   @id @default(uuid()) @db.Uuid
+  batchId          String   @map("batch_id") @db.Uuid
+  rowNumber        Int      @map("row_number")
+  rawJson          Json     @map("raw_json")
+  validationStatus String   @map("validation_status")
+  resultingLeadId  String?  @map("resulting_lead_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  batch ImportBatch @relation(fields: [batchId], references: [id])
+
+  @@unique([batchId, rowNumber])
+  @@map("import_rows")
+}
+
+model Service {
+  id              String   @id @default(uuid()) @db.Uuid
+  code            String?  @unique
+  name            String
+  description     String?
+  category        String?
+  unitPrice       Decimal? @map("unit_price") @db.Decimal(18, 2)
+  processingDays  Int?     @map("processing_days")
+  status          String   @default("ACTIVE")
+  customFields    Json?    @map("custom_fields")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId String?  @map("created_by_user_id") @db.Uuid
+  updatedByUserId String?  @map("updated_by_user_id") @db.Uuid
+
+  orders Order[]
+
+  @@index([category])
+  @@index([status])
+  @@map("services")
+}
+
+model Collaborator {
+  id              String             @id @default(uuid()) @db.Uuid
+  userId          String             @unique @map("user_id") @db.Uuid
+  displayName     String             @map("display_name")
+  phone           String?
+  email           String?
+  status          CollaboratorStatus @default(ACTIVE)
+  notes           String?
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId String?            @map("created_by_user_id") @db.Uuid
+  updatedByUserId String?            @map("updated_by_user_id") @db.Uuid
+
+  customers        CollaboratorCustomer[]
+  contractRequests ContractRequest[]
+  orders           Order[]
+  commissions      Commission[]
+
+  @@index([status])
+  @@map("collaborators")
+}
+
+model CollaboratorCustomer {
+  collaboratorId String   @map("collaborator_id") @db.Uuid
+  customerId     String   @map("customer_id") @db.Uuid
+  assignedAt     DateTime @map("assigned_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  collaborator Collaborator @relation(fields: [collaboratorId], references: [id])
+
+  @@id([collaboratorId, customerId])
+  @@unique([collaboratorId, customerId])
+  @@index([customerId])
+  @@map("collaborator_customers")
+}
+
+model ContractRequest {
+  id                 String                @id @default(uuid()) @db.Uuid
+  collaboratorId     String                @map("collaborator_id") @db.Uuid
+  customerId         String?               @map("customer_id") @db.Uuid
+  leadId             String?               @map("lead_id") @db.Uuid
+  title              String
+  description        String?
+  status             ContractRequestStatus @default(DRAFT)
+  reviewedByUserId   String?               @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt         DateTime?             @map("reviewed_at") @db.Timestamptz(6)
+  reviewNote         String?               @map("review_note")
+  approvedContractId String?               @map("approved_contract_id") @db.Uuid
+  createdAt          DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId    String?               @map("created_by_user_id") @db.Uuid
+  updatedByUserId    String?               @map("updated_by_user_id") @db.Uuid
+
+  collaborator Collaborator @relation(fields: [collaboratorId], references: [id])
+
+  @@index([collaboratorId])
+  @@index([status])
+  @@map("contract_requests")
+}
+
+model Contract {
+  id              String         @id @default(uuid()) @db.Uuid
+  contractNumber  String         @unique @map("contract_number")
+  customerId      String         @map("customer_id") @db.Uuid
+  status          ContractStatus
+  title           String?
+  description     String?
+  signedAt        DateTime?      @map("signed_at") @db.Timestamptz(6)
+  deletedAt       DateTime?      @map("deleted_at") @db.Timestamptz(6)
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId String?        @map("created_by_user_id") @db.Uuid
+  updatedByUserId String?        @map("updated_by_user_id") @db.Uuid
+
+  customer  Customer           @relation(fields: [customerId], references: [id])
+  instances WorkflowInstance[]
+  tasks     Task[]
+  documents DocumentMetadata[]
+  orders    Order[]
+
+  @@index([customerId])
+  @@index([status])
+  @@map("contracts")
+}
+
+model WorkflowTemplate {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String
+  description     String?
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId String?  @map("created_by_user_id") @db.Uuid
+  updatedByUserId String?  @map("updated_by_user_id") @db.Uuid
+
+  stages    WorkflowStage[]
+  instances WorkflowInstance[]
+
+  @@map("workflow_templates")
+}
+
+model WorkflowStage {
+  id                  String   @id @default(uuid()) @db.Uuid
+  templateId          String   @map("template_id") @db.Uuid
+  name                String
+  sortOrder           Int      @map("sort_order")
+  responsibleRoleCode String?  @map("responsible_role_code")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  template     WorkflowTemplate    @relation(fields: [templateId], references: [id])
+  requirements StageRequirement[]
+  instances    WorkflowInstance[]  @relation("CurrentStage")
+
+  @@unique([templateId, sortOrder])
+  @@map("workflow_stages")
+}
+
+model StageRequirement {
+  id         String   @id @default(uuid()) @db.Uuid
+  stageId    String   @map("stage_id") @db.Uuid
+  type       String
+  configJson Json?    @map("config_json")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  stage WorkflowStage @relation(fields: [stageId], references: [id])
+
+  @@map("stage_requirements")
+}
+
+model WorkflowInstance {
+  id             String    @id @default(uuid()) @db.Uuid
+  contractId     String    @map("contract_id") @db.Uuid
+  templateId     String    @map("template_id") @db.Uuid
+  currentStageId String    @map("current_stage_id") @db.Uuid
+  startedAt      DateTime  @map("started_at") @db.Timestamptz(6)
+  completedAt    DateTime? @map("completed_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  contract     Contract         @relation(fields: [contractId], references: [id])
+  template     WorkflowTemplate @relation(fields: [templateId], references: [id])
+  currentStage WorkflowStage    @relation("CurrentStage", fields: [currentStageId], references: [id])
+  tasks        Task[]
+
+  @@index([contractId])
+  @@map("workflow_instances")
+}
+
+model Task {
+  id              String    @id @default(uuid()) @db.Uuid
+  instanceId      String?   @map("instance_id") @db.Uuid
+  contractId      String    @map("contract_id") @db.Uuid
+  title           String
+  description     String?
+  assigneeUserId  String?   @map("assignee_user_id") @db.Uuid
+  dueAt           DateTime? @map("due_at") @db.Timestamptz(6)
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz(6)
+  status          String
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId String?   @map("created_by_user_id") @db.Uuid
+  updatedByUserId String?   @map("updated_by_user_id") @db.Uuid
+
+  contract Contract          @relation(fields: [contractId], references: [id])
+  instance WorkflowInstance? @relation(fields: [instanceId], references: [id])
+
+  @@index([contractId])
+  @@index([status])
+  @@map("tasks")
+}
+
+model DocumentMetadata {
+  id               String    @id @default(uuid()) @db.Uuid
+  contractId       String?   @map("contract_id") @db.Uuid
+  orderId          String?   @map("order_id") @db.Uuid
+  storageKey       String    @map("storage_key")
+  fileName         String    @map("file_name")
+  fileType         String?   @map("file_type")
+  mimeType         String?   @map("mime_type")
+  fileSize         BigInt?   @map("file_size")
+  uploadedByUserId String    @map("uploaded_by_user_id") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  contract Contract? @relation(fields: [contractId], references: [id])
+  order    Order?    @relation(fields: [orderId], references: [id])
+
+  @@index([contractId])
+  @@index([orderId])
+  @@map("document_metadata")
+}
+
+model Order {
+  id                 String    @id @default(uuid()) @db.Uuid
+  orderNumber        String    @unique @map("order_number")
+  contractId         String    @map("contract_id") @db.Uuid
+  customerId         String    @map("customer_id") @db.Uuid
+  serviceId          String    @map("service_id") @db.Uuid
+  stage              String    @default("new")
+  channel            String    @default("direct")
+  collaboratorId     String?   @map("collaborator_id") @db.Uuid
+  value              Decimal   @db.Decimal(18, 2)
+  collaboratorPrice  Decimal?  @map("collaborator_price") @db.Decimal(18, 2)
+  totalNet           Decimal   @map("total_net") @db.Decimal(18, 2)
+  vatRate            Decimal   @default(10) @map("vat_rate") @db.Decimal(5, 2)
+  totalGross         Decimal   @map("total_gross") @db.Decimal(18, 2)
+  currency           String    @default("VND")
+  assignedUserId     String    @map("assigned_user_id") @db.Uuid
+  submitterUserId    String    @map("submitter_user_id") @db.Uuid
+  reviewerUserId     String?   @map("reviewer_user_id") @db.Uuid
+  deadline           DateTime? @db.Date
+  vatIssueDeadline   DateTime? @map("vat_issue_deadline") @db.Date
+  needsVat           Boolean   @default(false) @map("needs_vat")
+  contractNumber     Int?      @map("contract_number")
+  approvalStatus     String    @default("none") @map("approval_status")
+  pendingTransition  Json?     @map("pending_transition")
+  approvalHistory    Json?     @map("approval_history")
+  notes              String?
+  zaloGroupLink      String?   @map("zalo_group_link")
+  serviceStart       DateTime? @map("service_start") @db.Date
+  serviceEnd         DateTime? @map("service_end") @db.Date
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId    String?   @map("created_by_user_id") @db.Uuid
+  updatedByUserId    String?   @map("updated_by_user_id") @db.Uuid
+
+  contract         Contract          @relation(fields: [contractId], references: [id])
+  service          Service           @relation(fields: [serviceId], references: [id])
+  collaborator     Collaborator?     @relation(fields: [collaboratorId], references: [id])
+  paymentSchedule  PaymentSchedule?
+  payments         Payment[]
+  vatInvoices      VatInvoice[]
+  expenses         Expense[]
+  commissions      Commission[]
+  documents        DocumentMetadata[]
+
+  @@index([contractId])
+  @@index([customerId])
+  @@index([serviceId])
+  @@index([stage])
+  @@index([collaboratorId])
+  @@index([serviceEnd])
+  @@map("orders")
+}
+
+model PaymentSchedule {
+  id              String   @id @default(uuid()) @db.Uuid
+  orderId         String   @unique @map("order_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId String?  @map("created_by_user_id") @db.Uuid
+  updatedByUserId String?  @map("updated_by_user_id") @db.Uuid
+
+  order Order                 @relation(fields: [orderId], references: [id])
+  lines PaymentScheduleLine[]
+
+  @@map("payment_schedules")
+}
+
+model PaymentScheduleLine {
+  id         String    @id @default(uuid()) @db.Uuid
+  scheduleId String    @map("schedule_id") @db.Uuid
+  dueDate    DateTime? @map("due_date") @db.Date
+  amount     Decimal   @db.Decimal(18, 2)
+  sortOrder  Int       @map("sort_order")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  schedule PaymentSchedule @relation(fields: [scheduleId], references: [id])
+  payments Payment[]
+
+  @@unique([scheduleId, sortOrder])
+  @@map("payment_schedule_lines")
+}
+
+model Payment {
+  id                 String                     @id @default(uuid()) @db.Uuid
+  orderId            String                     @map("order_id") @db.Uuid
+  scheduleLineId     String?                    @map("schedule_line_id") @db.Uuid
+  amount             Decimal                    @db.Decimal(18, 2)
+  method             PaymentMethod
+  recordedAt         DateTime                   @map("recorded_at") @db.Timestamptz(6)
+  verificationStatus PaymentVerificationStatus  @default(RECORDED) @map("verification_status")
+  provider           String?
+  providerPaymentId  String?                    @map("provider_payment_id")
+  providerStatus     String?                    @map("provider_status")
+  createdAt          DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId    String?                    @map("created_by_user_id") @db.Uuid
+  updatedByUserId    String?                    @map("updated_by_user_id") @db.Uuid
+
+  order        Order                @relation(fields: [orderId], references: [id])
+  scheduleLine PaymentScheduleLine? @relation(fields: [scheduleLineId], references: [id])
+  vatInvoices  VatInvoice[]
+  commissions  Commission[]
+
+  @@index([orderId])
+  @@index([verificationStatus])
+  @@map("payments")
+}
+
+model VatInvoice {
+  id              String        @id @default(uuid()) @db.Uuid
+  invoiceNumber   String        @unique @map("invoice_number")
+  orderId         String        @map("order_id") @db.Uuid
+  paymentId       String?       @map("payment_id") @db.Uuid
+  sourceType      String        @map("source_type")
+  customerName    String?       @map("customer_name")
+  customerTaxCode String?       @map("customer_tax_code")
+  contractNumber  Int?          @map("contract_number")
+  netAmount       Decimal       @map("net_amount") @db.Decimal(18, 2)
+  vatRate         Decimal       @default(10) @map("vat_rate") @db.Decimal(5, 2)
+  vatAmount       Decimal       @map("vat_amount") @db.Decimal(18, 2)
+  grossAmount     Decimal       @map("gross_amount") @db.Decimal(18, 2)
+  status          InvoiceStatus @default(DRAFT)
+  issueDate       DateTime?     @map("issue_date") @db.Date
+  dueDate         DateTime?     @map("due_date") @db.Date
+  lines           Json?
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId String?       @map("created_by_user_id") @db.Uuid
+  updatedByUserId String?       @map("updated_by_user_id") @db.Uuid
+
+  order   Order    @relation(fields: [orderId], references: [id])
+  payment Payment? @relation(fields: [paymentId], references: [id])
+
+  @@index([orderId])
+  @@index([status])
+  @@map("vat_invoices")
+}
+
+model Expense {
+  id                String        @id @default(uuid()) @db.Uuid
+  orderId           String        @map("order_id") @db.Uuid
+  title             String
+  amount            Decimal       @db.Decimal(18, 2)
+  currency          String        @default("VND")
+  note              String?
+  payeeName         String?       @map("payee_name")
+  description       String?
+  incurredOn        DateTime?     @map("incurred_on") @db.Date
+  ctvRelated        Boolean       @default(false) @map("ctv_related")
+  status            ExpenseStatus @default(PENDING)
+  requestedByUserId String        @map("requested_by_user_id") @db.Uuid
+  requestedAt       DateTime      @map("requested_at") @db.Timestamptz(6)
+  reviewedByUserId  String?       @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt        DateTime?     @map("reviewed_at") @db.Timestamptz(6)
+  reviewNote        String?       @map("review_note")
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId   String?       @map("created_by_user_id") @db.Uuid
+  updatedByUserId   String?       @map("updated_by_user_id") @db.Uuid
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@index([status])
+  @@map("expenses")
+}
+
+model Commission {
+  id                 String           @id @default(uuid()) @db.Uuid
+  orderId            String           @map("order_id") @db.Uuid
+  paymentId          String?          @map("payment_id") @db.Uuid
+  collaboratorId     String?          @map("collaborator_id") @db.Uuid
+  beneficiaryUserId  String?          @map("beneficiary_user_id") @db.Uuid
+  rate               Decimal          @db.Decimal(5, 2)
+  baseAmount         Decimal          @map("base_amount") @db.Decimal(18, 2)
+  commissionAmount   Decimal          @map("commission_amount") @db.Decimal(18, 2)
+  periodStart        DateTime         @map("period_start") @db.Date
+  periodEnd          DateTime         @map("period_end") @db.Date
+  status             CommissionStatus
+  calculatedAt       DateTime?        @map("calculated_at") @db.Timestamptz(6)
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId    String?          @map("created_by_user_id") @db.Uuid
+  updatedByUserId    String?          @map("updated_by_user_id") @db.Uuid
+
+  order        Order         @relation(fields: [orderId], references: [id])
+  payment      Payment?      @relation(fields: [paymentId], references: [id])
+  collaborator Collaborator? @relation(fields: [collaboratorId], references: [id])
+
+  @@index([orderId])
+  @@index([status])
+  @@map("commissions")
+}
+
+model Notification {
+  id              String    @id @default(uuid()) @db.Uuid
+  recipientUserId String    @map("recipient_user_id") @db.Uuid
+  type            String
+  title           String
+  body            String?
+  readAt          DateTime? @map("read_at") @db.Timestamptz(6)
+  sourceType      String?   @map("source_type")
+  sourceId        String?   @map("source_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  emailLogs OutboundEmailLog[]
+
+  @@index([recipientUserId])
+  @@map("notifications")
+}
+
+model Reminder {
+  id              String    @id @default(uuid()) @db.Uuid
+  recipientUserId String    @map("recipient_user_id") @db.Uuid
+  title           String
+  description     String?
+  sourceType      String?   @map("source_type")
+  sourceId        String?   @map("source_id") @db.Uuid
+  remindAt        DateTime  @map("remind_at") @db.Timestamptz(6)
+  status          String    @default("PENDING")
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId String?   @map("created_by_user_id") @db.Uuid
+  updatedByUserId String?   @map("updated_by_user_id") @db.Uuid
+
+  @@index([recipientUserId])
+  @@index([remindAt])
+  @@map("reminders")
+}
+
+model OutboundEmailLog {
+  id                    String   @id @default(uuid()) @db.Uuid
+  toAddress             String   @map("to_address")
+  templateKey           String   @map("template_key")
+  providerMessageId     String?  @map("provider_message_id")
+  status                String
+  relatedNotificationId String?  @map("related_notification_id") @db.Uuid
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  notification Notification? @relation(fields: [relatedNotificationId], references: [id])
+
+  @@map("outbound_email_logs")
+}
+
+model AppConfig {
+  key       String   @id
+  valueJson Json     @map("value_json")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("app_config")
+}

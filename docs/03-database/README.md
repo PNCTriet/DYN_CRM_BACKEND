@@ -1,46 +1,28 @@
 # Phase 03 — Database Index
 
-> Vietnamese version: [README.vi.md](./README.vi.md)  
-> **Canonical:** English.
+> Vietnamese: [README.vi.md](./README.vi.md)
 
 ## Status
 
-**DRAFT CONTRACT IN PROGRESS.** Do **not** treat Finance as final. Identity / CRM / Legal drafts may be typed into Prisma **without** shipping a single all-domain production migration.
+**DATABASE CONTRACT (2026-09-05).** Authoritative sources:
 
-| Phase | Status |
-|-------|--------|
-| 00 — Project | LOCKED (plus 2026-08-17 scope-change rows) |
-| 01 — Architecture | LOCKED |
-| 02 — Domain | BASELINE COMPLETE / RE-LOCKING |
-| 03 — Database | **DRAFT SCHEMA CONTRACT** |
-| 04 — Development | After schema baseline |
+1. [`schema.sql`](./schema.sql) (DBML)  
+2. [`SchemaDesign.md`](./SchemaDesign.md)  
+3. [`DbReview.md`](./DbReview.md)  
+4. [`TraceabilityMatrix.md`](./TraceabilityMatrix.md)
 
-**Prisma recommendation:** **YES, except Finance** — see [SchemaDesign.md](./SchemaDesign.md) §12.
+| Other docs | Role |
+|------------|------|
+| [ModelingPrinciples.md](./ModelingPrinciples.md) | Conventions |
+| [AggregateCatalog.md](./AggregateCatalog.md) | Aggregate map (align to schema) |
+| [ImplementationFoundation.md](./ImplementationFoundation.md) | NestJS / Supabase contracts |
 
-## Documents
+## Domains in DB
 
-| Doc | Role |
-|-----|------|
-| [ModelingPrinciples.md](./ModelingPrinciples.md) | Keys, money, enums vs config, soft delete |
-| [AggregateCatalog.md](./AggregateCatalog.md) | Aggregates, FKs, OPEN questions per bounded context |
-| [SchemaDesign.md](./SchemaDesign.md) | Entities, constraints, ERDs, enum vs config, readiness matrix |
-| [ImplementationFoundation.md](./ImplementationFoundation.md) | Supabase Auth mapping + NestJS contracts |
+Identity · CRM · Service · Collaboration · Legal · Finance · Communication · System  
 
-## Aggregate order
+**No:** payroll, income, debt table, SePay-specific, multi-tenant.
 
-1. Identity  
-2. CRM  
-3. Legal  
-4. Finance  
-5. Communication  
+## Prisma
 
-**Collaboration is excluded.**
-
-## Rules
-
-- No `schema.prisma` / migrations in this documentation drop.  
-- Configurable Kanban stages are **tables**, not Prisma enums.  
-- Contract number uniqueness is a **database unique constraint**.  
-- Finance does not store SePay SDK types.  
-- Do not create CTV portal tables.  
-- Do not duplicate Payment as Income.  
+Generate from this contract. Use `prisma migrate`. Add **unique** on `contracts.contract_number` (soft-delete aware) — see DbReview NEEDS CHANGE.
