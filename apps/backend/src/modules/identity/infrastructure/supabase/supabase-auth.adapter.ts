@@ -11,9 +11,12 @@ import {
   AuthPort,
   AuthSubject,
   AuthTokens,
+  OAuthAuthorizeResult,
+  OAuthProvider,
   SignInInput,
   SignUpInput,
 } from '../../domain/auth.port';
+import { MapAuthStorage } from './map-auth-storage';
 
 @Injectable()
 export class SupabaseAuthAdapter extends AuthPort {
@@ -38,7 +41,10 @@ export class SupabaseAuthAdapter extends AuthPort {
     this.client = this.createClient();
   }
 
-  private createClient(accessToken?: string): SupabaseClient {
+  private createClient(
+    accessToken?: string,
+    storage?: MapAuthStorage,
+  ): SupabaseClient {
     return createClient(this.url, this.key, {
       ...(accessToken
         ? { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
@@ -47,6 +53,8 @@ export class SupabaseAuthAdapter extends AuthPort {
         autoRefreshToken: false,
         persistSession: false,
         detectSessionInUrl: false,
+        flowType: 'pkce',
+        ...(storage ? { storage, persistSession: true } : {}),
       },
       realtime: {
         // Auth BFF does not use realtime; transport only satisfies client init on Node 20
@@ -72,6 +80,24 @@ export class SupabaseAuthAdapter extends AuthPort {
       expiresIn: session.expires_in,
       expiresAt: session.expires_at,
       tokenType: session.token_type ?? 'bearer',
+    };
+  }
+
+  private subjectFromUser(user: {
+    id: string;
+    email?: string | null;
+    user_metadata?: Record<string, unknown>;
+  }): AuthSubject {
+    const meta = user.user_metadata ?? {};
+    const displayName =
+      (typeof meta.full_name === 'string' && meta.full_name) ||
+      (typeof meta.name === 'string' && meta.name) ||
+      (typeof meta.display_name === 'string' && meta.display_name) ||
+      null;
+    return {
+      subjectId: user.id,
+      email: user.email ?? null,
+      displayName,
     };
   }
 
@@ -143,10 +169,7 @@ export class SupabaseAuthAdapter extends AuthPort {
     if (error || !data.user) {
       return null;
     }
-    return {
-      subjectId: data.user.id,
-      email: data.user.email ?? null,
-    };
+    return this.subjectFromUser(data.user);
   }
 
   async requestPasswordReset(email: string, redirectTo?: string): Promise<void> {
@@ -165,5 +188,44 @@ export class SupabaseAuthAdapter extends AuthPort {
     if (error) {
       throw new BadRequestException(error.message);
     }
+  }
+
+  async getOAuthAuthorizeUrl(input: {
+    provider: OAuthProvider;
+    redirectTo: string;
+  }): Promise<OAuthAuthorizeResult> {
+    const storage = new MapAuthStorage();
+    const client = this.createClient(undefined, storage);
+    const { data, error } = await client.auth.signInWithOAuth({
+      provider: input.provider,
+      options: {
+        redirectTo: input.redirectTo,
+        skipBrowserRedirect: true,
+      },
+    });
+    if (error || !data.url) {
+      throw new BadRequestException(
+        error?.message ?? 'Failed to start OAuth authorize URL',
+      );
+    }
+    return { url: data.url, pkceStorage: storage.toRecord() };
+  }
+
+  async exchangeOAuthCode(input: {
+    code: string;
+    pkceStorage: Record<string, string>;
+  }): Promise<{ subject: AuthSubject; tokens: AuthTokens }> {
+    const storage = MapAuthStorage.fromRecord(input.pkceStorage);
+    const client = this.createClient(undefined, storage);
+    const { data, error } = await client.auth.exchangeCodeForSession(input.code);
+    if (error || !data.session || !data.user) {
+      throw new UnauthorizedException(
+        error?.message ?? 'OAuth code exchange failed',
+      );
+    }
+    return {
+      subject: this.subjectFromUser(data.user),
+      tokens: this.mapSession(data.session),
+    };
   }
 }

@@ -1,6 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AuthPort } from '../domain/auth.port';
+import { AuthPort, AuthTokens } from '../domain/auth.port';
 import { AuthUser } from '../domain/auth-user';
 import { IdentityAccessService } from './identity-access.service';
 import { SignUpDto } from './dto/sign-up.dto';
@@ -23,6 +27,17 @@ export interface SignUpPendingResponse {
   requiresEmailConfirmation: true;
   message: string;
   user: AuthUser;
+}
+
+export interface GoogleOAuthStartResult {
+  authorizeUrl: string;
+  pkceStorage: Record<string, string>;
+  feRedirect: string;
+}
+
+export interface GoogleOAuthCompleteResult {
+  redirectUrl: string;
+  session: SessionResponse;
 }
 
 @Injectable()
@@ -111,6 +126,131 @@ export class AuthApplicationService {
 
   me(user: AuthUser): AuthUser {
     return user;
+  }
+
+  /**
+   * Start Google OAuth (Supabase). Controller redirects browser to authorizeUrl
+   * and stores pkceStorage + feRedirect in httpOnly cookie.
+   */
+  async startGoogleOAuth(
+    redirectToFe: string | undefined,
+    nestCallbackUrl: string,
+  ): Promise<GoogleOAuthStartResult> {
+    const feRedirect = this.resolveFeRedirect(redirectToFe);
+    this.assertRedirectAllowed(feRedirect);
+    const { url, pkceStorage } = await this.authPort.getOAuthAuthorizeUrl({
+      provider: 'google',
+      redirectTo: nestCallbackUrl,
+    });
+    return { authorizeUrl: url, pkceStorage, feRedirect };
+  }
+
+  /**
+   * Exchange OAuth code → provision local user → FE redirect with token hash.
+   */
+  async completeGoogleOAuth(
+    code: string,
+    pkceStorage: Record<string, string>,
+    feRedirect: string,
+  ): Promise<GoogleOAuthCompleteResult> {
+    this.assertRedirectAllowed(feRedirect);
+    const { subject, tokens } = await this.authPort.exchangeOAuthCode({
+      code,
+      pkceStorage,
+    });
+    let user = await this.identityAccess.loadAuthUserBySubject(
+      subject.subjectId,
+    );
+    if (!user) {
+      const email = subject.email;
+      if (!email) {
+        throw new BadRequestException(
+          'Google account has no email; cannot provision user',
+        );
+      }
+      user = await this.identityAccess.ensureLocalUser({
+        authSubjectId: subject.subjectId,
+        email,
+        displayName:
+          subject.displayName ?? email.split('@')[0] ?? 'User',
+        defaultRoleCode:
+          this.config.get<string>('DEFAULT_SIGNUP_ROLE') ?? 'SALES',
+      });
+    }
+    const session = this.toSession(tokens, user);
+    return {
+      session,
+      redirectUrl: this.buildOAuthSuccessRedirect(feRedirect, tokens),
+    };
+  }
+
+  buildOAuthErrorRedirect(
+    feRedirect: string | undefined,
+    message: string,
+  ): string {
+    const base =
+      feRedirect && this.isRedirectAllowed(feRedirect)
+        ? feRedirect
+        : this.resolveFeRedirect(undefined);
+    const url = new URL(base);
+    url.hash = new URLSearchParams({
+      error: 'oauth_failed',
+      error_description: message.slice(0, 200),
+    }).toString();
+    return url.toString();
+  }
+
+  private resolveFeRedirect(redirectToFe: string | undefined): string {
+    const fallback =
+      this.config.get<string>('OAUTH_SUCCESS_REDIRECT_URL') ??
+      'http://localhost:3001/auth/callback';
+    return redirectToFe?.trim() || fallback;
+  }
+
+  private assertRedirectAllowed(url: string): void {
+    if (!this.isRedirectAllowed(url)) {
+      throw new BadRequestException(
+        `redirectTo not allowed. Must start with OAUTH_REDIRECT_ALLOW_PREFIX (${this.allowPrefixes().join(', ')})`,
+      );
+    }
+  }
+
+  private isRedirectAllowed(url: string): boolean {
+    try {
+      // eslint-disable-next-line no-new
+      new URL(url);
+    } catch {
+      return false;
+    }
+    return this.allowPrefixes().some((prefix) => url.startsWith(prefix));
+  }
+
+  private allowPrefixes(): string[] {
+    const raw =
+      this.config.get<string>('OAUTH_REDIRECT_ALLOW_PREFIX') ??
+      'http://localhost:3001';
+    return raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  private buildOAuthSuccessRedirect(
+    feRedirect: string,
+    tokens: AuthTokens,
+  ): string {
+    const url = new URL(feRedirect);
+    const params = new URLSearchParams({
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
+      expires_in: String(tokens.expiresIn),
+      token_type: tokens.tokenType || 'bearer',
+    });
+    if (tokens.expiresAt != null) {
+      params.set('expires_at', String(tokens.expiresAt));
+    }
+    url.hash = params.toString();
+    return url.toString();
   }
 
   private toSession(

@@ -31,6 +31,7 @@
 |-------|----------|--------|
 | A | Foundation | **DONE** |
 | B0–B1 | Auth session + `/auth/me` | **DONE** |
+| B0b | Google OAuth BFF | **DONE** |
 | B2–B5 | Admin users/roles/permissions APIs | **DONE** |
 | C1–C7 | CRM (Customer→Import) | **DONE** |
 | D | Service | **DONE** |

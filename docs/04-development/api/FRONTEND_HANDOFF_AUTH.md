@@ -15,6 +15,7 @@
 ```text
 POST /auth/signup  →  SessionResponse | { requiresEmailConfirmation, user }
 POST /auth/login   →  SessionResponse { accessToken, refreshToken, user }
+GET  /auth/oauth/google?redirectTo=…  →  302 Google → Nest callback → FE #tokens
 GET  /auth/me      →  AuthUser { permissions, roleCodes, … }
 POST /auth/refresh →  SessionResponse
 POST /auth/logout  →  { success: true }
@@ -27,6 +28,12 @@ Authorization: Bearer <accessToken>
 ```
 
 Nếu signup trả `requiresEmailConfirmation: true` → confirm email trên Supabase (hoặc tắt Confirm email trong Dashboard khi dev) → rồi `login`.
+
+### Google / Gmail
+
+1. Nút “Đăng nhập Google” → `window.location = API + '/auth/oauth/google?redirectTo=' + encodeURIComponent(origin + '/auth/callback')`  
+2. Trang `/auth/callback` đọc `location.hash` → lưu `access_token` / `refresh_token` như sau `/auth/login` → xóa hash → `GET /auth/me`.  
+3. Chi tiết + setup Dashboard: [`auth.md`](./auth.md) (section Google OAuth).
 
 ## 3. Smoke test sau Auth (nhẹ)
 
