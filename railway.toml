@@ -6,6 +6,7 @@ builder = "NIXPACKS"
 buildCommand = "pnpm install --frozen-lockfile && pnpm --filter @dyn-crm/backend run prisma:generate && pnpm --filter @dyn-crm/backend exec nest build"
 
 [deploy]
+# Must run compiled JS — do NOT use `nest start` in production.
 startCommand = "pnpm --filter @dyn-crm/backend start:prod"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
