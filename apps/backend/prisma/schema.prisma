@@ -15,6 +15,7 @@ datasource db {
 
 enum UserStatus {
   INVITED
+  PENDING_APPROVAL
   ACTIVE
   SUSPENDED
   DEACTIVATED
@@ -221,6 +222,8 @@ model Customer {
   phone           String?
   email           String?
   taxId           String?      @map("tax_id")
+  // Free-form key from the FE catalog (crm.customerStatusCatalog) — not an enum.
+  status          String       @default("active")
   deletedAt       DateTime?    @map("deleted_at") @db.Timestamptz(6)
   createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -237,6 +240,7 @@ model Customer {
   @@index([phone])
   @@index([email])
   @@index([taxId])
+  @@index([status])
   @@map("customers")
 }
 

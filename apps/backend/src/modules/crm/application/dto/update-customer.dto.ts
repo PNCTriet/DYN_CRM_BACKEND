@@ -49,4 +49,13 @@ export class UpdateCustomerDto {
   @IsOptional()
   @IsUUID()
   ownerId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Key from crm.customerStatusCatalog config',
+    example: 'lead',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  status?: string;
 }

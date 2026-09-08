@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { UserStatus } from '@prisma/client';
 import { AuthPort, AuthTokens } from '../domain/auth.port';
 import { AuthUser } from '../domain/auth-user';
 import { IdentityAccessService } from './identity-access.service';
@@ -168,13 +169,15 @@ export class AuthApplicationService {
           'Google account has no email; cannot provision user',
         );
       }
+      // Google sign-in is open to anyone with a Gmail account, so a first-time
+      // user gets no role and waits for an admin (PUT /users/:id/roles +
+      // PATCH /users/:id { status: ACTIVE }). Password signup keeps its default role.
       user = await this.identityAccess.ensureLocalUser({
         authSubjectId: subject.subjectId,
         email,
-        displayName:
-          subject.displayName ?? email.split('@')[0] ?? 'User',
-        defaultRoleCode:
-          this.config.get<string>('DEFAULT_SIGNUP_ROLE') ?? 'SALES',
+        displayName: subject.displayName ?? email.split('@')[0] ?? 'User',
+        defaultRoleCode: null,
+        status: UserStatus.PENDING_APPROVAL,
       });
     }
     const session = this.toSession(tokens, user);

@@ -21,10 +21,12 @@ export class CustomerRepository {
     take: number;
     ownerId?: string;
     search?: string;
+    status?: string;
   }) {
     const where: Prisma.CustomerWhereInput = {
       deletedAt: null,
       ...(params.ownerId ? { ownerId: params.ownerId } : {}),
+      ...(params.status ? { status: params.status } : {}),
       ...(params.search
         ? {
             OR: [

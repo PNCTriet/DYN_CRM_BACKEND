@@ -42,7 +42,8 @@ User → UserRole → Role → RolePermissionGroup → PermissionGroup → Group
 | role_permission_groups | M:N | role_id, permission_group_id | UNIQUE pair |
 | group_permissions | M:N | permission_group_id, permission_id | UNIQUE pair |
 
-**user_status:** INVITED | ACTIVE | SUSPENDED | DEACTIVATED.
+**user_status:** INVITED | PENDING_APPROVAL | ACTIVE | SUSPENDED | DEACTIVATED.  
+`PENDING_APPROVAL` = user Google lần đầu, chưa có role, chờ admin duyệt.
 
 PermissionGroup path is **LOCKED** by schema (no direct Role→Permission table).
 

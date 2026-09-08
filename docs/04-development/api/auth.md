@@ -144,7 +144,7 @@ Response: **302** tới Google/Supabase. Set httpOnly cookie PKCE (`dyn_oauth_pk
 
 ### GET `/auth/oauth/callback`
 
-Supabase gọi endpoint này (không phải FE). Nest exchange code → `ensureLocalUser` (role `DEFAULT_SIGNUP_ROLE`) → **302** về `redirectTo` với **hash**:
+Supabase gọi endpoint này (không phải FE). Nest exchange code → `ensureLocalUser` → **302** về `redirectTo` với **hash**:
 
 | Hash param | Meaning |
 |------------|---------|
@@ -157,7 +157,29 @@ Supabase gọi endpoint này (không phải FE). Nest exchange code → `ensureL
 
 **MVP note:** tokens trong URL hash — FE parse một lần rồi xóa hash; tránh log XSS. Phase sau có thể chuyển httpOnly cookie BFF.
 
-User Google lần đầu → provision local như login; email trùng user password khác `authSubjectId` **chưa** merge (OPEN).
+Email trùng user password nhưng khác `authSubjectId` **chưa** merge (OPEN).
+
+### User Google lần đầu — chờ admin duyệt
+
+Ai có Gmail cũng bấm login được, nên user Google mới **không** được gán role:
+
+| | Google lần đầu | `POST /auth/signup` (email/password) |
+|---|---|---|
+| `status` | `PENDING_APPROVAL` | `ACTIVE` |
+| Role | không có | `DEFAULT_SIGNUP_ROLE` (mặc định `SALES`) |
+
+Login vẫn thành công và trả token thật — `PENDING_APPROVAL` **không** bị `AuthGuard` chặn, để FE gọi được `/auth/me`. Nhưng vì không có role nên `permissions` rỗng, mọi endpoint có `@RequirePermission` trả **403**.
+
+FE dựa vào `/auth/me`: `status` ∈ `PENDING_APPROVAL | INVITED`, hoặc `roleCodes` + `permissions` đều rỗng → đẩy sang `/pending-approval`, không hydrate API.
+
+Admin duyệt bằng hai lệnh (đều cần `user.manage`):
+
+```http
+PUT   /users/:id/roles   { "roleCodes": ["SALES"] }
+PATCH /users/:id         { "status": "ACTIVE" }
+```
+
+User phải **đăng nhập lại hoặc refresh `/auth/me`** thì permission mới có hiệu lực.
 
 ### Next.js sketch
 

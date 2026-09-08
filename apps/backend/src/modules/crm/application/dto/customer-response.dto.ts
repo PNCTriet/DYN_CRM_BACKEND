@@ -8,6 +8,7 @@ export class CustomerResponseDto {
   phone!: string | null;
   email!: string | null;
   taxId!: string | null;
+  status!: string;
   createdAt!: Date;
   updatedAt!: Date;
 
@@ -21,6 +22,7 @@ export class CustomerResponseDto {
     phone: string | null;
     email: string | null;
     taxId: string | null;
+    status: string;
     createdAt: Date;
     updatedAt: Date;
   }): CustomerResponseDto {
@@ -34,6 +36,7 @@ export class CustomerResponseDto {
     dto.phone = record.phone;
     dto.email = record.email;
     dto.taxId = record.taxId;
+    dto.status = record.status;
     dto.createdAt = record.createdAt;
     dto.updatedAt = record.updatedAt;
     return dto;

@@ -130,7 +130,7 @@ describe('AuthApplicationService', () => {
       });
     });
 
-    it('completeGoogleOAuth provisions new user and builds hash redirect', async () => {
+    it('completeGoogleOAuth provisions new user pending approval and builds hash redirect', async () => {
       (authPort.exchangeOAuthCode as jest.Mock).mockResolvedValue({
         subject: {
           subjectId: 'sub-g',
@@ -159,7 +159,8 @@ describe('AuthApplicationService', () => {
           authSubjectId: 'sub-g',
           email: 'g@gmail.com',
           displayName: 'G User',
-          defaultRoleCode: 'SALES',
+          defaultRoleCode: null,
+          status: 'PENDING_APPROVAL',
         }),
       );
       expect(res.session.accessToken).toBe('at');

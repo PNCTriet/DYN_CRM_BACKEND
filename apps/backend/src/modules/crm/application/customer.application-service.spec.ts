@@ -37,6 +37,7 @@ describe('CustomerApplicationService', () => {
       phone: null,
       email: null,
       taxId: null,
+      status: 'active',
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -46,7 +47,39 @@ describe('CustomerApplicationService', () => {
       displayName: 'Acme',
     });
     expect(result.legalName).toBe('Acme');
+    expect(result.status).toBe('active');
     expect(repo.create).toHaveBeenCalled();
+  });
+
+  it('persists custom status key on update', async () => {
+    (repo.findById as jest.Mock).mockResolvedValue({
+      id: 'c1',
+      ownerId: 'sales-1',
+    });
+    (repo.update as jest.Mock).mockResolvedValue({
+      id: 'c1',
+      type: 'COMPANY',
+      ownerId: 'sales-1',
+      industryOrField: null,
+      legalName: 'Acme',
+      displayName: 'Acme',
+      phone: null,
+      email: null,
+      taxId: null,
+      status: 'vip-lead',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const result = await service.update(salesUser, 'c1', {
+      status: 'vip-lead',
+    });
+
+    expect(repo.update).toHaveBeenCalledWith(
+      'c1',
+      expect.objectContaining({ status: 'vip-lead' }),
+    );
+    expect(result.status).toBe('vip-lead');
   });
 
   it('denies getById outside OWN scope', async () => {

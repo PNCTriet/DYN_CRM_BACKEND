@@ -15,7 +15,13 @@ import {
   MinLength,
 } from 'class-validator';
 
-const USER_STATUSES = ['INVITED', 'ACTIVE', 'SUSPENDED', 'DEACTIVATED'] as const;
+const USER_STATUSES = [
+  'INVITED',
+  'PENDING_APPROVAL',
+  'ACTIVE',
+  'SUSPENDED',
+  'DEACTIVATED',
+] as const;
 
 export class ListUsersQueryDto {
   @ApiPropertyOptional({ default: 1 })

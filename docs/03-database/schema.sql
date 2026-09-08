@@ -9,6 +9,7 @@ Project dyn_crm {
 
 Enum user_status {
   INVITED
+  PENDING_APPROVAL
   ACTIVE
   SUSPENDED
   DEACTIVATED
@@ -225,6 +226,8 @@ Table customers {
   phone text
   email text
   tax_id text
+
+  status text [not null, default: 'active', note: 'free-form key from crm.customerStatusCatalog config']
 
   deleted_at timestamptz
 

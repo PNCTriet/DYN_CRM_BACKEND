@@ -48,4 +48,13 @@ export class CreateCustomerDto {
   @IsOptional()
   @IsUUID()
   ownerId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Key from crm.customerStatusCatalog config; default "active"',
+    example: 'active',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  status?: string;
 }

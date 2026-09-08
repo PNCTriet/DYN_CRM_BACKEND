@@ -6,6 +6,7 @@ import {
   IsUUID,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -60,4 +61,13 @@ export class UpdateOrderDto {
   @IsString()
   @MaxLength(50)
   channel?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'User allowed to approve/reject expenses on this order. null clears it.',
+  })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsUUID()
+  reviewerUserId?: string | null;
 }

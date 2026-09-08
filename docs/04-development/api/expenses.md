@@ -56,3 +56,12 @@ Optional: `currency` (VND), `note`, `payeeName`, `description`, `incurredOn`, `c
 ## Commands
 
 - **approve** / **reject** `{ note? }` — only from PENDING
+
+**Business rule:** người duyệt phải đúng là `order.reviewerUserId` của đơn chứa expense.  
+`expense.approve` **không** đủ để duyệt hộ người khác.
+
+| Trường hợp | Kết quả |
+|------------|---------|
+| `currentUser.id === order.reviewerUserId` | duyệt được |
+| Khác reviewer | **403** `Only the reviewer assigned to this order can review its expenses` |
+| Đơn chưa có reviewer (`null`) | **400** — set trước bằng `PATCH /orders/:id { reviewerUserId }` |

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -95,6 +96,22 @@ export class ExpenseApplicationService {
     if (record.status !== ExpenseStatus.PENDING) {
       throw new BadRequestException('Expense is not pending review');
     }
+
+    // expense.approve alone is not enough: only the reviewer named on the order
+    // may settle its expenses.
+    const order = await this.orders.findById(record.orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    if (!order.reviewerUserId) {
+      throw new BadRequestException(
+        'Order has no reviewer yet — set reviewerUserId via PATCH /orders/:id first',
+      );
+    }
+    if (order.reviewerUserId !== user.id) {
+      throw new ForbiddenException(
+        'Only the reviewer assigned to this order can review its expenses',
+      );
+    }
+
     const updated = await this.repo.update(id, {
       status,
       reviewedByUserId: user.id,

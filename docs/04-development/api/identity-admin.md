@@ -25,7 +25,7 @@ Admin seed token: `test:11111111-1111-4111-8111-111111111101` (role ADMIN có `i
 {
   email: string;
   displayName: string;
-  status?: 'INVITED' | 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
+  status?: 'INVITED' | 'PENDING_APPROVAL' | 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
   authSubjectId?: string; // default local:<uuid> — link Supabase id khi có
   roleCodes?: string[];
   phone?: string;

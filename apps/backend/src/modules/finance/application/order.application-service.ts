@@ -107,6 +107,9 @@ export class OrderApplicationService {
       ...(dto.currency !== undefined ? { currency: dto.currency } : {}),
       ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
       ...(dto.channel !== undefined ? { channel: dto.channel } : {}),
+      ...(dto.reviewerUserId !== undefined
+        ? { reviewerUserId: dto.reviewerUserId }
+        : {}),
       updatedByUserId: user.id,
     });
     return OrderResponseDto.from(updated);

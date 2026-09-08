@@ -36,6 +36,7 @@ interface Customer {
   phone: string | null;
   email: string | null;
   taxId: string | null;
+  status: string; // free-form key, default "active"
   createdAt: string; // ISO
   updatedAt: string;
 }
@@ -64,6 +65,9 @@ interface CustomerListResponse {
 | email | string | no |
 | taxId | string | no |
 | ownerId | uuid | no (needs `customer.assign`) |
+| status | string ≤50 | no (default `active`) |
+
+`status` là **string tự do**, không enum — key lấy từ catalog `crm.customerStatusCatalog` trong `PATCH /config/:key`, nên FE thêm status mới không cần đổi backend.
 
 **Response** `201`/`200` → `Customer`
 
@@ -85,6 +89,7 @@ curl -s -X POST http://localhost:3000/api/v1/customers \
 | page | int ≥1 | 1 |
 | pageSize | int 1–100 | 20 |
 | search | string | — (legalName, displayName, email, phone, taxId) |
+| status | string ≤50 | — (exact match) |
 
 **Response** → `CustomerListResponse`
 

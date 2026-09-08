@@ -36,6 +36,7 @@ export class CustomerApplicationService {
       phone: dto.phone,
       email: dto.email,
       taxId: dto.taxId,
+      ...(dto.status !== undefined ? { status: dto.status } : {}),
       owner: { connect: { id: ownerId } },
       createdByUserId: user.id,
       updatedByUserId: user.id,
@@ -55,6 +56,7 @@ export class CustomerApplicationService {
       take: pageSize,
       ownerId: filter.ownerId,
       search: query.search,
+      status: query.status,
     });
     return {
       items: rows.map((r) => CustomerResponseDto.from(r)),
@@ -103,6 +105,7 @@ export class CustomerApplicationService {
       ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
       ...(dto.email !== undefined ? { email: dto.email } : {}),
       ...(dto.taxId !== undefined ? { taxId: dto.taxId } : {}),
+      ...(dto.status !== undefined ? { status: dto.status } : {}),
       ...(dto.ownerId !== undefined
         ? { owner: { connect: { id: dto.ownerId } } }
         : {}),

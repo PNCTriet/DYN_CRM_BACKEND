@@ -71,8 +71,10 @@ interface Order {
 ## Commands
 
 - **assign** `{ assignedUserId }`
-- **change-stage** `{ stage }`
+- **change-stage** `{ stage }` — `stage` là **string tự do** (≤50), lưu nguyên văn, không enum, không state machine. Stage custom từ catalog `crm.orderStages` dùng thẳng được.
 - **approve** `{ note? }` → `approvalStatus: approved`
+
+`reviewerUserId` set qua `PATCH /orders/:id { reviewerUserId }` (gửi `null` để xoá). Đây là người **duy nhất** được duyệt expense của đơn — xem [`expenses.md`](./expenses.md).
 
 ## Payment schedule
 

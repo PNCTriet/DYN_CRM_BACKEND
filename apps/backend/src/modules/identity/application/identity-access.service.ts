@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { UserStatus } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuthPort } from '../domain/auth.port';
 import { AuthUser } from '../domain/auth-user';
@@ -96,12 +97,17 @@ export class IdentityAccessService {
 
   /**
    * Provision Nest `users` row linked to IdP subject (signup / first login).
+   *
+   * Google users land here without `defaultRoleCode` and with
+   * `status: PENDING_APPROVAL` — an admin must grant roles and activate them
+   * before any RBAC-protected endpoint answers.
    */
   async ensureLocalUser(input: {
     authSubjectId: string;
     email: string;
     displayName: string;
-    defaultRoleCode: string;
+    defaultRoleCode?: string | null;
+    status?: UserStatus;
   }): Promise<AuthUser> {
     const existing = await this.prisma.user.findFirst({
       where: { authSubjectId: input.authSubjectId, deletedAt: null },
@@ -114,16 +120,18 @@ export class IdentityAccessService {
       return loaded;
     }
 
-    const role = await this.prisma.role.findUnique({
-      where: { code: input.defaultRoleCode },
-    });
+    const role = input.defaultRoleCode
+      ? await this.prisma.role.findUnique({
+          where: { code: input.defaultRoleCode },
+        })
+      : null;
 
     const created = await this.prisma.user.create({
       data: {
         authSubjectId: input.authSubjectId,
         email: input.email,
         displayName: input.displayName,
-        status: 'ACTIVE',
+        status: input.status ?? UserStatus.ACTIVE,
         ...(role
           ? {
               userRoles: {
