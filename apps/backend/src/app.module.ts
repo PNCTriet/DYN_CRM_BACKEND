@@ -11,6 +11,7 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { CollaborationModule } from './modules/collaboration/collaboration.module';
 import { CommunicationModule } from './modules/communication/communication.module';
 import { SystemModule } from './modules/system/system.module';
+import { WidgetoModule } from './modules/widgeto/widgeto.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { SystemModule } from './modules/system/system.module';
     CollaborationModule,
     CommunicationModule,
     SystemModule,
+    WidgetoModule,
   ],
 })
 export class AppModule {}

@@ -2,7 +2,8 @@
 
 > **Source of truth for HTTP contracts.**  
 > Swagger explores interactively; these MD files are the stable FE contract.  
-> **FE integrate guide + copy-paste prompt:** [FRONTEND_INTEGRATION_PROMPT.md](./FRONTEND_INTEGRATION_PROMPT.md)
+> **FE integrate guide + copy-paste prompt:** [FRONTEND_INTEGRATION_PROMPT.md](./FRONTEND_INTEGRATION_PROMPT.md)  
+> **FE phân quyền (RBAC) audit prompt:** [FRONTEND_HANDOFF_RBAC.md](./FRONTEND_HANDOFF_RBAC.md)
 
 ## Connection
 
@@ -80,6 +81,7 @@ NEXT_PUBLIC_API_URL=https://apidyn.otcayxe.com/api/v1
 | Notifications | [notifications.md](./notifications.md) | **Live** |
 | Reminders | [reminders.md](./reminders.md) | **Live** |
 | App config | [config.md](./config.md) | **Live** |
+| Widgeto (public KPI, `X-Widgeto-Key`) | [widgeto.md](./widgeto.md) | **Live** |
 
 ## Seed tokens (QA)
 

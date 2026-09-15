@@ -1,7 +1,8 @@
 # Frontend handoff — ưu tiên Auth (test trước)
 
 > Dành cho Next.js: **làm Auth trước**, call nhẹ vài API, rồi mở rộng theo domain.  
-> Plan + prompt module API: [`FRONTEND_INTEGRATION_PROMPT.md`](./FRONTEND_INTEGRATION_PROMPT.md)
+> Plan + prompt module API: [`FRONTEND_INTEGRATION_PROMPT.md`](./FRONTEND_INTEGRATION_PROMPT.md)  
+> Phân quyền / audit RBAC: [`FRONTEND_HANDOFF_RBAC.md`](./FRONTEND_HANDOFF_RBAC.md)
 
 ## 1. Kết nối
 
