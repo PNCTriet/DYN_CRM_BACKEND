@@ -7,8 +7,9 @@ import { WidgetoKeyGuard } from './widgeto-key.guard';
 @ApiTags('widgeto')
 @ApiHeader({
   name: 'X-Widgeto-Key',
-  description: 'Shared secret (env WIDGETO_API_KEY). No Bearer JWT.',
-  required: true,
+  description:
+    'Shared secret (env WIDGETO_API_KEY). Alternative: query ?key= for Widgeto URL/QR.',
+  required: false,
 })
 @Controller('widgeto')
 @UseGuards(WidgetoKeyGuard)
@@ -18,6 +19,7 @@ export class WidgetoController {
   @Get('summary')
   @ApiOperation({
     summary: 'Dashboard KPI summary (customers + orders + payments)',
+    description: 'Pass format=w12 for Widgeto W12 key-value rows.',
   })
   summary(@Query() query: WidgetoRangeQueryDto) {
     return this.widgeto.summary(query);

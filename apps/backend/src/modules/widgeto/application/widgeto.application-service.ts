@@ -7,19 +7,22 @@ import {
   WidgetoPaymentsStats,
   WidgetoRangeQueryDto,
   WidgetoSummary,
+  WidgetoW12Row,
 } from './dto/widgeto.dto';
 
 @Injectable()
 export class WidgetoApplicationService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async summary(query: WidgetoRangeQueryDto): Promise<WidgetoSummary> {
+  async summary(
+    query: WidgetoRangeQueryDto,
+  ): Promise<WidgetoSummary | WidgetoW12Row[]> {
     const [customers, orders, payments] = await Promise.all([
-      this.customers(query),
-      this.orders(query),
-      this.payments(query),
+      this.customersStats(query),
+      this.ordersStats(query),
+      this.paymentsStats(query),
     ]);
-    return {
+    const data: WidgetoSummary = {
       generatedAt: new Date().toISOString(),
       customers,
       orders,
@@ -30,9 +33,45 @@ export class WidgetoApplicationService {
         byStatus: payments.byStatus,
       },
     };
+    if (query.format === 'w12') {
+      return summaryToW12(data);
+    }
+    return data;
   }
 
-  async customers(query: WidgetoRangeQueryDto): Promise<WidgetoCustomersStats> {
+  async customers(
+    query: WidgetoRangeQueryDto,
+  ): Promise<WidgetoCustomersStats | WidgetoW12Row[]> {
+    const data = await this.customersStats(query);
+    if (query.format === 'w12') {
+      return customersToW12(data);
+    }
+    return data;
+  }
+
+  async orders(
+    query: WidgetoRangeQueryDto,
+  ): Promise<WidgetoOrdersStats | WidgetoW12Row[]> {
+    const data = await this.ordersStats(query);
+    if (query.format === 'w12') {
+      return ordersToW12(data);
+    }
+    return data;
+  }
+
+  async payments(
+    query: WidgetoRangeQueryDto,
+  ): Promise<WidgetoPaymentsStats | WidgetoW12Row[]> {
+    const data = await this.paymentsStats(query);
+    if (query.format === 'w12') {
+      return paymentsToW12(data);
+    }
+    return data;
+  }
+
+  private async customersStats(
+    query: WidgetoRangeQueryDto,
+  ): Promise<WidgetoCustomersStats> {
     const createdAt = this.dateRange(query);
     const groups = await this.prisma.customer.groupBy({
       by: ['status'],
@@ -46,7 +85,9 @@ export class WidgetoApplicationService {
     return { total, byStatus: byKey };
   }
 
-  async orders(query: WidgetoRangeQueryDto): Promise<WidgetoOrdersStats> {
+  private async ordersStats(
+    query: WidgetoRangeQueryDto,
+  ): Promise<WidgetoOrdersStats> {
     const createdAt = this.dateRange(query);
     const groups = await this.prisma.order.groupBy({
       by: ['stage'],
@@ -57,7 +98,9 @@ export class WidgetoApplicationService {
     return { total, byStage: byKey };
   }
 
-  async payments(query: WidgetoRangeQueryDto): Promise<WidgetoPaymentsStats> {
+  private async paymentsStats(
+    query: WidgetoRangeQueryDto,
+  ): Promise<WidgetoPaymentsStats> {
     const recordedAt = this.dateRange(query);
     const whereBase: Prisma.PaymentWhereInput = recordedAt
       ? { recordedAt }
@@ -94,7 +137,9 @@ export class WidgetoApplicationService {
     return {
       totalCount,
       verifiedCount: byStatus.VERIFIED,
-      verifiedAmount: (verifiedAgg._sum.amount ?? new Prisma.Decimal(0)).toString(),
+      verifiedAmount: (
+        verifiedAgg._sum.amount ?? new Prisma.Decimal(0)
+      ).toString(),
       byStatus,
       currency: 'VND',
     };
@@ -124,4 +169,80 @@ export function mapGroupedCounts<K extends string>(
     total += row._count._all;
   }
   return { total, byKey };
+}
+
+export function summaryToW12(data: WidgetoSummary): WidgetoW12Row[] {
+  const rows: WidgetoW12Row[] = [
+    { key: 'DYN CRM', color: 'main' },
+    { key: 'Customers', value: String(data.customers.total), color: 'info' },
+    { key: 'Orders', value: String(data.orders.total), color: 'info' },
+    {
+      key: 'Pay verified',
+      value: String(data.payments.verifiedCount),
+      color: 'success',
+    },
+    {
+      key: 'Amount VND',
+      value: truncate(data.payments.verifiedAmount, 24),
+      color: 'success',
+    },
+  ];
+  return rows.slice(0, 12);
+}
+
+export function customersToW12(data: WidgetoCustomersStats): WidgetoW12Row[] {
+  const rows: WidgetoW12Row[] = [
+    { key: 'CUSTOMERS', color: 'main' },
+    { key: 'Total', value: String(data.total), color: 'info' },
+    { key: '' },
+  ];
+  for (const [status, count] of Object.entries(data.byStatus)) {
+    if (rows.length >= 12) break;
+    rows.push({
+      key: truncate(status, 24),
+      value: String(count),
+    });
+  }
+  return rows.slice(0, 12);
+}
+
+export function ordersToW12(data: WidgetoOrdersStats): WidgetoW12Row[] {
+  const rows: WidgetoW12Row[] = [
+    { key: 'ORDERS', color: 'main' },
+    { key: 'Total', value: String(data.total), color: 'info' },
+    { key: '' },
+  ];
+  for (const [stage, count] of Object.entries(data.byStage)) {
+    if (rows.length >= 12) break;
+    rows.push({
+      key: truncate(stage, 24),
+      value: String(count),
+    });
+  }
+  return rows.slice(0, 12);
+}
+
+export function paymentsToW12(data: WidgetoPaymentsStats): WidgetoW12Row[] {
+  const rows: WidgetoW12Row[] = [
+    { key: 'PAYMENTS', color: 'main' },
+    { key: 'Total', value: String(data.totalCount) },
+    {
+      key: 'Verified',
+      value: String(data.verifiedCount),
+      color: 'success',
+    },
+    {
+      key: 'Amount',
+      value: truncate(data.verifiedAmount, 24),
+      color: 'success',
+    },
+    { key: '' },
+    { key: 'Recorded', value: String(data.byStatus.RECORDED), color: 'muted' },
+    { key: 'Voided', value: String(data.byStatus.VOIDED), color: 'warning' },
+  ];
+  return rows.slice(0, 12);
+}
+
+function truncate(s: string, max: number): string {
+  return s.length <= max ? s : s.slice(0, max);
 }

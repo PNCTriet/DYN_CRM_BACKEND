@@ -11,6 +11,7 @@ export const WIDGETO_KEY_HEADER = 'x-widgeto-key';
 
 /**
  * Shared-secret gate for /widgeto/* — no JWT / no user session.
+ * Accepts `X-Widgeto-Key` header or `?key=` (Widgeto URL / QR import).
  */
 @Injectable()
 export class WidgetoKeyGuard implements CanActivate {
@@ -24,14 +25,21 @@ export class WidgetoKeyGuard implements CanActivate {
 
     const req = context.switchToHttp().getRequest<{
       headers: Record<string, string | string[] | undefined>;
+      query?: Record<string, string | string[] | undefined>;
     }>();
-    const raw = req.headers[WIDGETO_KEY_HEADER];
-    const provided = Array.isArray(raw) ? raw[0] : raw;
-    if (!provided || typeof provided !== 'string') {
-      throw new UnauthorizedException('Invalid Widgeto API key');
-    }
 
-    if (!safeEqual(provided, expected)) {
+    const headerRaw = req.headers[WIDGETO_KEY_HEADER];
+    const headerKey = Array.isArray(headerRaw) ? headerRaw[0] : headerRaw;
+    const queryRaw = req.query?.key;
+    const queryKey = Array.isArray(queryRaw) ? queryRaw[0] : queryRaw;
+    const provided =
+      typeof headerKey === 'string' && headerKey.length > 0
+        ? headerKey
+        : typeof queryKey === 'string'
+          ? queryKey
+          : undefined;
+
+    if (!provided || !safeEqual(provided, expected)) {
       throw new UnauthorizedException('Invalid Widgeto API key');
     }
     return true;

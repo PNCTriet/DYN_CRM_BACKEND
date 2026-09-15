@@ -1,0 +1,20 @@
+{
+  "name": "DYN CRM — Summary",
+  "version": 1,
+  "description": "KPI gom: customers + orders + payments verified",
+  "request": {
+    "method": "GET",
+    "url": "https://apidyn.otcayxe.com/api/v1/widgeto/summary?format=w12&key=0786978536%3ATriet",
+    "headers": {
+      "Accept": "application/json",
+      "X-Widgeto-Key": "0786978536:Triet"
+    }
+  },
+  "display": {
+    "type": "table",
+    "theme": "dark",
+    "template": "w12"
+  },
+  "apiWidgetKey": "v1::w12::dark::json::https://apidyn.otcayxe.com/api/v1/widgeto/summary?format=w12&key=0786978536%3ATriet",
+  "qrPayload": "v1::w12::dark::json::https://apidyn.otcayxe.com/api/v1/widgeto/summary?format=w12&key=0786978536%3ATriet"
+}

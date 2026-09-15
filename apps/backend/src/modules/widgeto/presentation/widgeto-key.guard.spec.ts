@@ -31,6 +31,18 @@ describe('WidgetoKeyGuard', () => {
     expect(guard.canActivate(makeContext('secret-abc'))).toBe(true);
   });
 
+  it('accepts matching query ?key=', () => {
+    (config.get as jest.Mock).mockReturnValue('secret-abc');
+    const req = {
+      headers: {},
+      query: { key: 'secret-abc' },
+    };
+    const ctx = {
+      switchToHttp: () => ({ getRequest: () => req }),
+    } as never;
+    expect(guard.canActivate(ctx)).toBe(true);
+  });
+
   it('rejects missing header', () => {
     (config.get as jest.Mock).mockReturnValue('secret-abc');
     expect(() => guard.canActivate(makeContext())).toThrow(

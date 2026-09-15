@@ -1,9 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsOptional } from 'class-validator';
+import { IsDateString, IsIn, IsOptional, IsString } from 'class-validator';
 
 export class WidgetoRangeQueryDto {
   @ApiPropertyOptional({
-    description: 'Inclusive lower bound (ISO). Customers/orders: createdAt; payments: recordedAt',
+    description:
+      'Inclusive lower bound (ISO). Customers/orders: createdAt; payments: recordedAt',
     example: '2026-01-01T00:00:00.000Z',
   })
   @IsOptional()
@@ -17,6 +18,30 @@ export class WidgetoRangeQueryDto {
   @IsOptional()
   @IsDateString()
   to?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Shared secret alternative to X-Widgeto-Key header (Widgeto URL / QR)',
+  })
+  @IsOptional()
+  @IsString()
+  key?: string;
+
+  @ApiPropertyOptional({
+    description: 'json (default) | w12 (API Widget / Widgeto W12 key-value rows)',
+    enum: ['json', 'w12'],
+    default: 'json',
+  })
+  @IsOptional()
+  @IsIn(['json', 'w12'])
+  format?: 'json' | 'w12';
+}
+
+/** W12 template row — https://apiwidget.com/docs/w12 */
+export interface WidgetoW12Row {
+  key: string;
+  value?: string;
+  color?: 'main' | 'muted' | 'info' | 'success' | 'warning' | 'danger';
 }
 
 export interface WidgetoCustomersStats {

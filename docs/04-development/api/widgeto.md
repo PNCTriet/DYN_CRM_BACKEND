@@ -14,12 +14,28 @@ Embed / Widgeto đọc KPI giống dashboard CRM (customers · orders · payment
 X-Widgeto-Key: <WIDGETO_API_KEY>
 ```
 
+Hoặc (Widgeto URL / QR — không gửi được header):
+
+```http
+GET /api/v1/widgeto/summary?format=w12&key=<WIDGETO_API_KEY>
+```
+
 | Rule | Chi tiết |
 |------|----------|
-| Header | `X-Widgeto-Key` (bắt buộc) |
+| Header | `X-Widgeto-Key` |
+| Query | `key` — cùng secret (ưu tiên header nếu cả hai có) |
 | Env BE | `WIDGETO_API_KEY` |
-| Sai / thiếu | **401** — không lộ chi tiết |
+| Sai / thiếu | **401** |
 | Không dùng | `Authorization: Bearer …` |
+
+### `format`
+
+| Value | Response |
+|-------|----------|
+| `json` (default) | Aggregate object (FE / dashboard) |
+| `w12` | Mảng `[{ key, value?, color? }]` tối đa 12 hàng — template Widgeto / API Widget |
+
+File import sẵn: folder repo [`WIDGETO/`](../../../WIDGETO/).
 
 So khớp key dùng so sánh constant-time. Response chỉ **aggregate** (count / sum) — **không** trả PII (email, phone, tên khách).
 

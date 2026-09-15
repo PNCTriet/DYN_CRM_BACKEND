@@ -1,0 +1,20 @@
+{
+  "name": "DYN CRM — Orders",
+  "version": 1,
+  "description": "Số đơn theo stage",
+  "request": {
+    "method": "GET",
+    "url": "https://apidyn.otcayxe.com/api/v1/widgeto/orders?format=w12&key=0786978536%3ATriet",
+    "headers": {
+      "Accept": "application/json",
+      "X-Widgeto-Key": "0786978536:Triet"
+    }
+  },
+  "display": {
+    "type": "table",
+    "theme": "dark",
+    "template": "w12"
+  },
+  "apiWidgetKey": "v1::w12::dark::json::https://apidyn.otcayxe.com/api/v1/widgeto/orders?format=w12&key=0786978536%3ATriet",
+  "qrPayload": "v1::w12::dark::json::https://apidyn.otcayxe.com/api/v1/widgeto/orders?format=w12&key=0786978536%3ATriet"
+}
