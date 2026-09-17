@@ -74,7 +74,7 @@ interface Order {
 - **change-stage** `{ stage }` — `stage` là **string tự do** (≤50), lưu nguyên văn, không enum, không state machine. Stage custom từ catalog `crm.orderStages` dùng thẳng được.
 - **approve** `{ note? }` → `approvalStatus: approved`
 
-`reviewerUserId` set qua `PATCH /orders/:id { reviewerUserId }` (gửi `null` để xoá). Đây là người **duy nhất** được duyệt expense của đơn — xem [`expenses.md`](./expenses.md).
+`reviewerUserId` set qua `PATCH /orders/:id { reviewerUserId }` (gửi `null` để xoá). Field này là metadata trên đơn; **duyệt chi** chỉ cần permission `expense.approve` — xem [`expenses.md`](./expenses.md).
 
 ## Payment schedule
 

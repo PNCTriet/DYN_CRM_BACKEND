@@ -56,17 +56,17 @@ Nếu FE thấy stage nhảy sau reload thì nguyên nhân nằm ngoài endpoint
 
 Không map page→permission ở backend. Cả 11 permission trong bảng gợi ý đều đã có trong seed, và `PUT /roles/:id/permission-groups` (cần `role.manage`) cũng đã có. Admin seed/map group là đủ; matrix `crm.pagePermissions` chỉ là UX của FE.
 
-## 6. Đề nghị thanh toán — chỉ reviewer được duyệt ✅
+## 6. Đề nghị thanh toán — permission `expense.approve` ✅
 
-`POST /expenses/:id/approve|reject` giờ load order và chặn:
+`POST /expenses/:id/approve|reject` chỉ cần `expense.approve` (RbacGuard). Không còn bắt khớp `order.reviewerUserId`.
 
 | Trường hợp | Kết quả |
 |------------|---------|
-| `currentUser.id === order.reviewerUserId` | duyệt được |
-| Khác reviewer | **403** |
-| `reviewerUserId` null | **400** — phải set reviewer trước |
+| Có `expense.approve` + expense `PENDING` | duyệt/reject được |
+| Không có `expense.approve` | **403** |
+| Expense không `PENDING` | **400** |
 
-Trước đây **không có đường nào** set `order.reviewerUserId` (chỉ `approve()` tự gán), nên đã thêm field này vào `PATCH /orders/:id` (gửi `null` để xoá).
+`order.reviewerUserId` vẫn set được qua `PATCH /orders/:id` (metadata), nhưng không gate duyệt chi.
 
 ## 7. Dịch vụ — không cần sửa
 
@@ -90,4 +90,4 @@ Chạy trước khi deploy code mới, vì code đã tham chiếu `PENDING_APPRO
 
 - `PATCH /customers/:id { status }` là luồng chuẩn để đổi status khách, không có endpoint riêng.
 - Sau khi admin gán role, user phải refresh `/auth/me` (hoặc đăng nhập lại) mới có permission.
-- Muốn duyệt chi thì đơn phải có `reviewerUserId` — set qua `PATCH /orders/:id`.
+- Duyệt chi: chỉ cần `expense.approve` trên user (refresh `/auth/me` sau khi admin gán role).

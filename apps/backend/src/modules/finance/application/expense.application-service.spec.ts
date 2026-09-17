@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { ExpenseStatus } from '@prisma/client';
 import { ExpenseApplicationService } from './expense.application-service';
 import { ExpenseRepository } from '../infrastructure/prisma/expense.repository';
@@ -15,13 +15,13 @@ describe('ExpenseApplicationService review', () => {
   } as unknown as OrderRepository;
   const service = new ExpenseApplicationService(repo, orders);
 
-  const reviewer: AuthUser = {
-    id: 'reviewer-1',
-    email: 'reviewer@dyn.local',
-    displayName: 'Reviewer',
+  const approver: AuthUser = {
+    id: 'user-1',
+    email: 'approver@dyn.local',
+    displayName: 'Approver',
     status: 'ACTIVE',
     permissions: ['expense.approve'],
-    roleCodes: ['MANAGER'],
+    roleCodes: ['ACCOUNTING'],
   };
 
   const pendingExpense = {
@@ -32,50 +32,54 @@ describe('ExpenseApplicationService review', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
-  it('approves when current user is the order reviewer', async () => {
+  it('approves any pending expense when caller has expense.approve', async () => {
     (repo.findById as jest.Mock).mockResolvedValue(pendingExpense);
-    (orders.findById as jest.Mock).mockResolvedValue({
-      id: 'o1',
-      reviewerUserId: 'reviewer-1',
-    });
     (repo.update as jest.Mock).mockResolvedValue({
       ...pendingExpense,
       status: ExpenseStatus.APPROVED,
       amount: 0,
     });
 
-    await service.approve(reviewer, 'e1', {});
+    await service.approve(approver, 'e1', {});
 
+    expect(orders.findById).not.toHaveBeenCalled();
     expect(repo.update).toHaveBeenCalledWith(
       'e1',
       expect.objectContaining({
         status: ExpenseStatus.APPROVED,
-        reviewedByUserId: 'reviewer-1',
+        reviewedByUserId: 'user-1',
       }),
     );
   });
 
-  it('rejects reviewers other than the one named on the order', async () => {
+  it('rejects any pending expense when caller has expense.approve', async () => {
     (repo.findById as jest.Mock).mockResolvedValue(pendingExpense);
-    (orders.findById as jest.Mock).mockResolvedValue({
-      id: 'o1',
-      reviewerUserId: 'someone-else',
+    (repo.update as jest.Mock).mockResolvedValue({
+      ...pendingExpense,
+      status: ExpenseStatus.REJECTED,
+      amount: 0,
     });
 
-    await expect(service.approve(reviewer, 'e1', {})).rejects.toThrow(
-      ForbiddenException,
+    await service.reject(approver, 'e1', { note: 'no' });
+
+    expect(orders.findById).not.toHaveBeenCalled();
+    expect(repo.update).toHaveBeenCalledWith(
+      'e1',
+      expect.objectContaining({
+        status: ExpenseStatus.REJECTED,
+        reviewedByUserId: 'user-1',
+        reviewNote: 'no',
+      }),
     );
-    expect(repo.update).not.toHaveBeenCalled();
   });
 
-  it('refuses review while the order has no reviewer', async () => {
-    (repo.findById as jest.Mock).mockResolvedValue(pendingExpense);
-    (orders.findById as jest.Mock).mockResolvedValue({
-      id: 'o1',
-      reviewerUserId: null,
+  it('refuses review when expense is not pending', async () => {
+    (repo.findById as jest.Mock).mockResolvedValue({
+      ...pendingExpense,
+      status: ExpenseStatus.APPROVED,
     });
 
-    await expect(service.reject(reviewer, 'e1', {})).rejects.toThrow(
+    await expect(service.approve(approver, 'e1', {})).rejects.toThrow(
       BadRequestException,
     );
     expect(repo.update).not.toHaveBeenCalled();
