@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { resolve } from 'path';
 import { PrismaModule } from './prisma/prisma.module';
 import { StorageModule } from './common/storage/storage.module';
+import { MailModule } from './common/mail/mail.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { CrmModule } from './modules/crm/crm.module';
 import { ServiceModule } from './modules/service/service.module';
@@ -21,6 +22,7 @@ import { WidgetoModule } from './modules/widgeto/widgeto.module';
     }),
     PrismaModule,
     StorageModule,
+    MailModule,
     IdentityModule,
     CrmModule,
     ServiceModule,

@@ -104,7 +104,7 @@ Outstanding = derived (`order.total_gross − Σ valid payments`) — **no Debt 
 |---|-------|-----------|--------|--------|
 | H1 | `notifications` | list own / mark read | [notifications.md](./api/notifications.md) | **DONE** |
 | H2 | `reminders` | CRUD / complete | [reminders.md](./api/reminders.md) | **DONE** |
-| H3 | `outbound_email_logs` | admin list (read-only) | SKIP or later | TODO |
+| H3 | `outbound_email_logs` + templates + prefs | list / send / Resend MailPort | [mail.md](./api/mail.md) | **DONE** |
 | H4 | `app_config` | get/patch keys (admin) | [config.md](./api/config.md) | **DONE** |
 
 ---

@@ -45,7 +45,7 @@ Format: `resource.action`
 
 ### Identity / System
 - `user.manage` `role.manage` `permission.manage`
-- `notification.view_own` `config.manage`
+- `notification.view_own` `email.template.manage` `config.manage`
 
 Unknown permission ⇒ **deny**.
 

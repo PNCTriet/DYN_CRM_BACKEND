@@ -120,6 +120,7 @@ const ALL_PERMISSIONS = [
   'role.manage',
   'permission.manage',
   'notification.view_own',
+  'email.template.manage',
   'config.manage',
 ] as const;
 
@@ -127,7 +128,7 @@ type GroupDef = { code: string; name: string; permissions: readonly string[] };
 
 const GROUPS: GroupDef[] = [
   { code: 'identity.admin', name: 'Identity admin', permissions: ['user.manage', 'role.manage', 'permission.manage'] },
-  { code: 'system.config', name: 'System config', permissions: ['config.manage', 'notification.view_own'] },
+  { code: 'system.config', name: 'System config', permissions: ['config.manage', 'notification.view_own', 'email.template.manage'] },
   {
     code: 'crm.full',
     name: 'CRM full',
@@ -333,6 +334,8 @@ const ROLE_GROUPS: Record<string, string[]> = {
 async function wipe() {
   // Leaf → root
   await prisma.outboundEmailLog.deleteMany();
+  await prisma.userNotificationPreference.deleteMany();
+  await prisma.emailTemplate.deleteMany();
   await prisma.reminder.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.commission.deleteMany();
@@ -906,10 +909,57 @@ async function seedDomainData() {
     data: {
       toAddress: 'sales@dyn.local',
       templateKey: 'order.created',
+      subject: 'Đơn hàng mới',
+      fromAddress: 'noreply@dyn.local',
       status: 'SENT',
       providerMessageId: 'seed-msg-001',
       relatedNotificationId: notif.id,
     },
+  });
+
+  await prisma.emailTemplate.createMany({
+    data: [
+      {
+        key: 'mail.test',
+        name: 'Resend connection test',
+        subject: '[DYN CRM] Test email {{time}}',
+        htmlBody:
+          '<p>Resend MailPort OK.</p><p>Sent at <strong>{{time}}</strong>.</p>',
+        textBody: 'Resend MailPort OK. Sent at {{time}}.',
+        description: 'Used by POST /mail/test',
+        isActive: true,
+      },
+      {
+        key: 'expense.submitted',
+        name: 'Expense submitted for approval',
+        subject: '[DYN] Yêu cầu duyệt chi: {{title}}',
+        htmlBody:
+          '<p>Có yêu cầu duyệt chi mới.</p><p><strong>{{title}}</strong> — {{amount}} {{currency}}</p>',
+        textBody: 'Yêu cầu duyệt chi: {{title}} — {{amount}} {{currency}}',
+        description: 'Notify holders of expense.approve',
+        isActive: true,
+      },
+      {
+        key: 'expense.approved',
+        name: 'Expense approved',
+        subject: '[DYN] Chi phí đã duyệt: {{title}}',
+        htmlBody:
+          '<p>Xin chào {{name}},</p><p>Yêu cầu <strong>{{title}}</strong> đã được <strong>duyệt</strong>.</p>',
+        textBody: 'Yêu cầu {{title}} đã được duyệt.',
+        description: 'Notify expense requester',
+        isActive: true,
+      },
+      {
+        key: 'expense.rejected',
+        name: 'Expense rejected',
+        subject: '[DYN] Chi phí bị từ chối: {{title}}',
+        htmlBody:
+          '<p>Xin chào {{name}},</p><p>Yêu cầu <strong>{{title}}</strong> đã bị <strong>từ chối</strong>.</p><p>{{note}}</p>',
+        textBody: 'Yêu cầu {{title}} bị từ chối. {{note}}',
+        description: 'Notify expense requester',
+        isActive: true,
+      },
+    ],
   });
 
   await prisma.appConfig.createMany({
@@ -925,6 +975,14 @@ async function seedDomainData() {
       {
         key: 'feature_flags',
         valueJson: { sepay: false, ctv_portal: true },
+      },
+      {
+        key: 'mail.flags',
+        valueJson: {
+          enabled: true,
+          expenseSubmittedEmail: true,
+          expenseReviewedEmail: true,
+        },
       },
     ],
   });

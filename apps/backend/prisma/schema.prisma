@@ -788,18 +788,58 @@ model Reminder {
   @@map("reminders")
 }
 
+model EmailTemplate {
+  id              String   @id @default(uuid()) @db.Uuid
+  key             String   @unique
+  name            String
+  subject         String
+  htmlBody        String   @map("html_body") @db.Text
+  textBody        String?  @map("text_body") @db.Text
+  description     String?
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId String?  @map("created_by_user_id") @db.Uuid
+  updatedByUserId String?  @map("updated_by_user_id") @db.Uuid
+
+  @@map("email_templates")
+}
+
+model UserNotificationPreference {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  /// EMAIL | IN_APP | TELEGRAM
+  channel        String
+  /// Event type e.g. expense.approved, or "*" for all
+  eventType      String   @map("event_type")
+  enabled        Boolean  @default(true)
+  /// Optional: telegram chat id / override address
+  channelAddress String?  @map("channel_address")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([userId, channel, eventType])
+  @@index([userId])
+  @@map("user_notification_preferences")
+}
+
 model OutboundEmailLog {
   id                    String   @id @default(uuid()) @db.Uuid
   toAddress             String   @map("to_address")
+  fromAddress           String?  @map("from_address")
   templateKey           String   @map("template_key")
+  subject               String?
   providerMessageId     String?  @map("provider_message_id")
   status                String
+  errorMessage          String?  @map("error_message") @db.Text
   relatedNotificationId String?  @map("related_notification_id") @db.Uuid
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   notification Notification? @relation(fields: [relatedNotificationId], references: [id])
 
+  @@index([templateKey])
+  @@index([createdAt])
   @@map("outbound_email_logs")
 }
 
