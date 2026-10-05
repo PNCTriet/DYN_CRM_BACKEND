@@ -16,6 +16,7 @@ export class OrderResponseDto {
   collaboratorId!: string | null;
   value!: string;
   collaboratorPrice!: string | null;
+  commissionPercent!: string | null;
   totalNet!: string;
   vatRate!: string;
   totalGross!: string;
@@ -39,6 +40,7 @@ export class OrderResponseDto {
     collaboratorId: string | null;
     value: Decimal;
     collaboratorPrice: Decimal | null;
+    commissionPercent: Decimal | null;
     totalNet: Decimal;
     vatRate: Decimal;
     totalGross: Decimal;
@@ -62,6 +64,7 @@ export class OrderResponseDto {
     dto.collaboratorId = record.collaboratorId;
     dto.value = record.value.toString();
     dto.collaboratorPrice = dec(record.collaboratorPrice);
+    dto.commissionPercent = dec(record.commissionPercent);
     dto.totalNet = record.totalNet.toString();
     dto.vatRate = record.vatRate.toString();
     dto.totalGross = record.totalGross.toString();

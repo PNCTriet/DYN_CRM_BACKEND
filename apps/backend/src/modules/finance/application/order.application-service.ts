@@ -48,6 +48,9 @@ export class OrderApplicationService {
       ...(dto.collaboratorId
         ? { collaborator: { connect: { id: dto.collaboratorId } } }
         : {}),
+      ...(dto.commissionPercent != null
+        ? { commissionPercent: new Prisma.Decimal(dto.commissionPercent) }
+        : {}),
       createdByUserId: user.id,
       updatedByUserId: user.id,
     });
@@ -109,6 +112,14 @@ export class OrderApplicationService {
       ...(dto.channel !== undefined ? { channel: dto.channel } : {}),
       ...(dto.reviewerUserId !== undefined
         ? { reviewerUserId: dto.reviewerUserId }
+        : {}),
+      ...(dto.commissionPercent !== undefined
+        ? {
+            commissionPercent:
+              dto.commissionPercent === null
+                ? null
+                : new Prisma.Decimal(dto.commissionPercent),
+          }
         : {}),
       updatedByUserId: user.id,
     });

@@ -35,6 +35,8 @@ interface Order {
   collaboratorId: string | null;
   value: string;
   collaboratorPrice: string | null;
+  /** % hoa hồng nhân viên phụ trách đơn (assignedUserId). Không phải % CTV. */
+  commissionPercent: string | null;
   totalNet: string;
   vatRate: string;
   totalGross: string;
@@ -61,6 +63,7 @@ interface Order {
 | assignedUserId | yes | — |
 | submitterUserId | no | current user |
 | collaboratorId | no | — |
+| commissionPercent | no | `null` (staff % for `assignedUserId`, 0–100, 2 decimal places) |
 | vatRate | no | `10` |
 | currency | no | `VND` |
 | stage | no | `new` |
@@ -75,6 +78,8 @@ interface Order {
 - **approve** `{ note? }` → `approvalStatus: approved`
 
 `reviewerUserId` set qua `PATCH /orders/:id { reviewerUserId }` (gửi `null` để xoá). Field này là metadata trên đơn; **duyệt chi** chỉ cần permission `expense.approve` — xem [`expenses.md`](./expenses.md).
+
+`commissionPercent` là % hoa hồng **nhân viên** (`assignedUserId`), không liên quan `collaboratorPrice` hay bảng `commissions`. PATCH bỏ field thì giữ nguyên; `{ "commissionPercent": null }` xoá. Đơn cũ chưa có giá trị trả `null`.
 
 ## Payment schedule
 

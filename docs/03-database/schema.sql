@@ -669,6 +669,9 @@ Table orders {
   // CTV price / commission-related amount
   collaborator_price decimal(18,2)
 
+  // Staff commission % for assigned user (not CTV). Null = not set.
+  commission_percent decimal(5,2)
+
   total_net decimal(18,2) [not null]
   vat_rate decimal(5,2) [not null, default: 10]
   total_gross decimal(18,2) [not null]

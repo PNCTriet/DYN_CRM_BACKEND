@@ -4,10 +4,12 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 export class CreateOrderDto {
   @ApiProperty({ example: 'ORD-2026-001' })
@@ -60,6 +62,22 @@ export class CreateOrderDto {
   @IsOptional()
   @IsUUID()
   collaboratorId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Staff commission percent for assignedUserId (0–100). Null or omitted on create stores null. Not CTV rate.',
+    example: 12.5,
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @Transform(({ value }) =>
+    value === null || value === undefined || value === '' ? value : Number(value),
+  )
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  commissionPercent?: number | null;
 
   @ApiPropertyOptional({ example: 10, default: 10 })
   @IsOptional()

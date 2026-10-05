@@ -566,6 +566,8 @@ model Order {
   collaboratorId     String?   @map("collaborator_id") @db.Uuid
   value              Decimal   @db.Decimal(18, 2)
   collaboratorPrice  Decimal?  @map("collaborator_price") @db.Decimal(18, 2)
+  /// Staff commission % for assignedUserId. Not CTV rate.
+  commissionPercent  Decimal?  @map("commission_percent") @db.Decimal(5, 2)
   totalNet           Decimal   @map("total_net") @db.Decimal(18, 2)
   vatRate            Decimal   @default(10) @map("vat_rate") @db.Decimal(5, 2)
   totalGross         Decimal   @map("total_gross") @db.Decimal(18, 2)

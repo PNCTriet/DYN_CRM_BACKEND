@@ -4,11 +4,12 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
   Min,
   ValidateIf,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 export class UpdateOrderDto {
   @ApiPropertyOptional()
@@ -43,6 +44,21 @@ export class UpdateOrderDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   vatRate?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Staff commission percent for assignedUserId (0–100). Omit to keep. null clears.',
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @Transform(({ value }) =>
+    value === null || value === undefined || value === '' ? value : Number(value),
+  )
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  commissionPercent?: number | null;
 
   @ApiPropertyOptional()
   @IsOptional()
