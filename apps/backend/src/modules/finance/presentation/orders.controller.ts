@@ -47,6 +47,19 @@ export class OrdersController {
     return this.orders.list(user, query);
   }
 
+  @Get(':id/detail')
+  @RequirePermission('order.view')
+  @ApiOperation({
+    summary:
+      'Aggregate order detail (order + schedule + payments + expenses + documents)',
+  })
+  getDetail(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.orders.getDetail(user, id);
+  }
+
   @Get(':id')
   @RequirePermission('order.view')
   @ApiOperation({ summary: 'Get order by id' })
@@ -103,7 +116,10 @@ export class OrdersController {
 
   @Get(':orderId/payment-schedule')
   @RequirePermission('order.view')
-  @ApiOperation({ summary: 'Get payment schedule for order' })
+  @ApiOperation({
+    summary:
+      'Get payment schedule for order (200 + empty lines when none yet)',
+  })
   getSchedule(
     @CurrentUser() user: AuthUser,
     @Param('orderId', ParseUUIDPipe) orderId: string,

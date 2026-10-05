@@ -10,8 +10,16 @@ export class OrderRepository {
     return this.prisma.order.create({ data });
   }
 
+  private readonly withNames = {
+    service: { select: { id: true, name: true } },
+    collaborator: { select: { id: true, displayName: true } },
+  } as const;
+
   findById(id: string) {
-    return this.prisma.order.findFirst({ where: { id } });
+    return this.prisma.order.findFirst({
+      where: { id },
+      include: this.withNames,
+    });
   }
 
   findMany(params: {
@@ -47,6 +55,7 @@ export class OrderRepository {
         skip: params.skip,
         take: params.take,
         orderBy: { createdAt: 'desc' },
+        include: this.withNames,
       }),
       this.prisma.order.count({ where }),
     ]);

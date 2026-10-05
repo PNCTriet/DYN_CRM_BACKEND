@@ -5,6 +5,15 @@ function dec(v: Decimal | null | undefined): string | null {
   return v.toString();
 }
 
+export type OrderDisplayNames = {
+  customerName?: string | null;
+  serviceName?: string | null;
+  assignedUserName?: string | null;
+  submitterName?: string | null;
+  reviewerName?: string | null;
+  collaboratorName?: string | null;
+};
+
 export class OrderResponseDto {
   id!: string;
   orderNumber!: string;
@@ -28,31 +37,43 @@ export class OrderResponseDto {
   notes!: string | null;
   createdAt!: Date;
   updatedAt!: Date;
+  /** Hydrated display names — FE skips N+1 lookups when present */
+  customerName!: string | null;
+  serviceName!: string | null;
+  assignedUserName!: string | null;
+  submitterName!: string | null;
+  reviewerName!: string | null;
+  collaboratorName!: string | null;
 
-  static from(record: {
-    id: string;
-    orderNumber: string;
-    contractId: string;
-    customerId: string;
-    serviceId: string;
-    stage: string;
-    channel: string;
-    collaboratorId: string | null;
-    value: Decimal;
-    collaboratorPrice: Decimal | null;
-    commissionPercent: Decimal | null;
-    totalNet: Decimal;
-    vatRate: Decimal;
-    totalGross: Decimal;
-    currency: string;
-    assignedUserId: string;
-    submitterUserId: string;
-    reviewerUserId: string | null;
-    approvalStatus: string;
-    notes: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-  }): OrderResponseDto {
+  static from(
+    record: {
+      id: string;
+      orderNumber: string;
+      contractId: string;
+      customerId: string;
+      serviceId: string;
+      stage: string;
+      channel: string;
+      collaboratorId: string | null;
+      value: Decimal;
+      collaboratorPrice: Decimal | null;
+      commissionPercent: Decimal | null;
+      totalNet: Decimal;
+      vatRate: Decimal;
+      totalGross: Decimal;
+      currency: string;
+      assignedUserId: string;
+      submitterUserId: string;
+      reviewerUserId: string | null;
+      approvalStatus: string;
+      notes: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+      service?: { name: string } | null;
+      collaborator?: { displayName: string } | null;
+    },
+    names: OrderDisplayNames = {},
+  ): OrderResponseDto {
     const dto = new OrderResponseDto();
     dto.id = record.id;
     dto.orderNumber = record.orderNumber;
@@ -76,6 +97,16 @@ export class OrderResponseDto {
     dto.notes = record.notes;
     dto.createdAt = record.createdAt;
     dto.updatedAt = record.updatedAt;
+    dto.customerName = names.customerName ?? null;
+    dto.serviceName =
+      names.serviceName ?? record.service?.name ?? null;
+    dto.assignedUserName = names.assignedUserName ?? null;
+    dto.submitterName = names.submitterName ?? null;
+    dto.reviewerName = names.reviewerName ?? null;
+    dto.collaboratorName =
+      names.collaboratorName ??
+      record.collaborator?.displayName ??
+      null;
     return dto;
   }
 }

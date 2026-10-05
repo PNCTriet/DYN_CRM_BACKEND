@@ -62,11 +62,13 @@ export class PaymentScheduleLineResponseDto {
 }
 
 export class PaymentScheduleResponseDto {
-  id!: string;
+  id!: string | null;
   orderId!: string;
   lines!: PaymentScheduleLineResponseDto[];
-  createdAt!: Date;
-  updatedAt!: Date;
+  createdAt!: Date | null;
+  updatedAt!: Date | null;
+  /** true when order has no schedule yet (HTTP 200, not 404) */
+  empty!: boolean;
 
   static from(record: {
     id: string;
@@ -86,6 +88,18 @@ export class PaymentScheduleResponseDto {
     dto.lines = record.lines.map((l) => PaymentScheduleLineResponseDto.from(l));
     dto.createdAt = record.createdAt;
     dto.updatedAt = record.updatedAt;
+    dto.empty = false;
+    return dto;
+  }
+
+  static empty(orderId: string): PaymentScheduleResponseDto {
+    const dto = new PaymentScheduleResponseDto();
+    dto.id = null;
+    dto.orderId = orderId;
+    dto.lines = [];
+    dto.createdAt = null;
+    dto.updatedAt = null;
+    dto.empty = true;
     return dto;
   }
 }

@@ -6,6 +6,7 @@ import { VatInvoiceApplicationService } from './application/vat-invoice.applicat
 import { ExpenseApplicationService } from './application/expense.application-service';
 import { CommissionApplicationService } from './application/commission.application-service';
 import { OrderPolicy } from './domain/policies/order.policy';
+import { EntityNameLookup } from './infrastructure/prisma/entity-name.lookup';
 import { OrderRepository } from './infrastructure/prisma/order.repository';
 import { PaymentRepository } from './infrastructure/prisma/payment.repository';
 import { VatInvoiceRepository } from './infrastructure/prisma/vat-invoice.repository';
@@ -32,6 +33,7 @@ import { CommissionsController } from './presentation/commissions.controller';
     VatInvoiceApplicationService,
     ExpenseApplicationService,
     CommissionApplicationService,
+    EntityNameLookup,
     OrderRepository,
     PaymentRepository,
     VatInvoiceRepository,

@@ -33,8 +33,13 @@ interface Payment {
   verificationStatus: PaymentVerificationStatus;
   createdAt: string;
   updatedAt: string;
+  orderNumber: string | null;
+  customerId: string | null;
+  customerName: string | null;
 }
 ```
+
+List/detail hydrate `orderNumber` / `customerName` (batch).
 
 ---
 

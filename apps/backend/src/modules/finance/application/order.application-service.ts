@@ -5,11 +5,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { AuthUser } from '../../identity/domain/auth-user';
+import { mapDocument } from '../../legal/infrastructure/prisma/document.repository';
 import { OrderPolicy } from '../domain/policies/order.policy';
+import { EntityNameLookup } from '../infrastructure/prisma/entity-name.lookup';
+import { ExpenseRepository } from '../infrastructure/prisma/expense.repository';
 import { OrderRepository } from '../infrastructure/prisma/order.repository';
+import { PaymentRepository } from '../infrastructure/prisma/payment.repository';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
+import { ExpenseResponseDto } from './dto/expense.dto';
 import { ListOrdersQueryDto } from './dto/list-orders-query.dto';
 import {
   ApproveOrderDto,
@@ -17,16 +22,26 @@ import {
   ChangeOrderStageDto,
 } from './dto/order-commands.dto';
 import { OrderResponseDto } from './dto/order-response.dto';
+import { PaymentResponseDto } from './dto/payment.dto';
 import {
   CreatePaymentScheduleDto,
   PaymentScheduleResponseDto,
 } from './dto/payment-schedule.dto';
+import { UpdateOrderDto } from './dto/update-order.dto';
+
+type OrderRow = NonNullable<
+  Awaited<ReturnType<OrderRepository['findById']>>
+>;
 
 @Injectable()
 export class OrderApplicationService {
   constructor(
     private readonly repo: OrderRepository,
     private readonly policy: OrderPolicy,
+    private readonly names: EntityNameLookup,
+    private readonly payments: PaymentRepository,
+    private readonly expenses: ExpenseRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   async create(user: AuthUser, dto: CreateOrderDto): Promise<OrderResponseDto> {
@@ -54,7 +69,7 @@ export class OrderApplicationService {
       createdByUserId: user.id,
       updatedByUserId: user.id,
     });
-    return OrderResponseDto.from(created);
+    return this.toDtoById(created.id);
   }
 
   async list(user: AuthUser, query: ListOrdersQueryDto) {
@@ -71,7 +86,7 @@ export class OrderApplicationService {
       contractId: query.contractId,
     });
     return {
-      items: rows.map((r) => OrderResponseDto.from(r)),
+      items: await this.toDtos(rows),
       total,
       page,
       pageSize,
@@ -80,7 +95,59 @@ export class OrderApplicationService {
 
   async getById(user: AuthUser, id: string): Promise<OrderResponseDto> {
     const record = await this.requireScoped(user, id, 'view');
-    return OrderResponseDto.from(record);
+    return (await this.toDtos([record]))[0];
+  }
+
+  /**
+   * Aggregate detail for FE order page — 1 RTT instead of order+payments+expenses+schedule(+docs).
+   */
+  async getDetail(user: AuthUser, id: string) {
+    const order = await this.requireScoped(user, id, 'view');
+    const [orderDto, schedule, paymentRows, expenseRows, documentRows] =
+      await Promise.all([
+        this.toDtos([order]).then((items) => items[0]),
+        this.repo.getPaymentSchedule(id),
+        this.payments.findMany({ skip: 0, take: 200, orderId: id }),
+        this.expenses.findMany({ skip: 0, take: 200, orderId: id }),
+        this.prisma.documentMetadata.findMany({
+          where: { orderId: id, deletedAt: null },
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+        }),
+      ]);
+
+    const paymentsList = paymentRows[0];
+    const expensesList = expenseRows[0];
+
+    const userIds = expensesList.flatMap((e) => [
+      e.requestedByUserId,
+      e.reviewedByUserId,
+    ]);
+    const users = await this.names.usersById(userIds);
+
+    return {
+      order: orderDto,
+      paymentSchedule: schedule
+        ? PaymentScheduleResponseDto.from(schedule)
+        : PaymentScheduleResponseDto.empty(id),
+      payments: paymentsList.map((p) =>
+        PaymentResponseDto.from(p, {
+          orderNumber: order.orderNumber,
+          customerId: order.customerId,
+          customerName: orderDto.customerName,
+        }),
+      ),
+      expenses: expensesList.map((e) =>
+        ExpenseResponseDto.from(e, {
+          requestedByName: users.get(e.requestedByUserId) ?? null,
+          reviewedByName: e.reviewedByUserId
+            ? (users.get(e.reviewedByUserId) ?? null)
+            : null,
+          orderNumber: order.orderNumber,
+        }),
+      ),
+      documents: documentRows.map((d) => mapDocument(d)),
+    };
   }
 
   async update(
@@ -89,7 +156,7 @@ export class OrderApplicationService {
     dto: UpdateOrderDto,
   ): Promise<OrderResponseDto> {
     await this.requireScoped(user, id, 'update');
-    const updated = await this.repo.update(id, {
+    await this.repo.update(id, {
       ...(dto.collaboratorId !== undefined
         ? dto.collaboratorId === null
           ? { collaborator: { disconnect: true } }
@@ -123,7 +190,7 @@ export class OrderApplicationService {
         : {}),
       updatedByUserId: user.id,
     });
-    return OrderResponseDto.from(updated);
+    return this.toDtoById(id);
   }
 
   async assign(
@@ -132,11 +199,11 @@ export class OrderApplicationService {
     dto: AssignOrderDto,
   ): Promise<OrderResponseDto> {
     await this.requireScoped(user, id, 'update');
-    const updated = await this.repo.update(id, {
+    await this.repo.update(id, {
       assignedUserId: dto.assignedUserId,
       updatedByUserId: user.id,
     });
-    return OrderResponseDto.from(updated);
+    return this.toDtoById(id);
   }
 
   async changeStage(
@@ -145,11 +212,11 @@ export class OrderApplicationService {
     dto: ChangeOrderStageDto,
   ): Promise<OrderResponseDto> {
     await this.requireScoped(user, id, 'update');
-    const updated = await this.repo.update(id, {
+    await this.repo.update(id, {
       stage: dto.stage,
       updatedByUserId: user.id,
     });
-    return OrderResponseDto.from(updated);
+    return this.toDtoById(id);
   }
 
   async approve(
@@ -168,13 +235,13 @@ export class OrderApplicationService {
       note: dto.note ?? null,
       status: 'approved',
     });
-    const updated = await this.repo.update(id, {
+    await this.repo.update(id, {
       approvalStatus: 'approved',
       reviewerUserId: user.id,
       approvalHistory: history as Prisma.InputJsonValue,
       updatedByUserId: user.id,
     });
-    return OrderResponseDto.from(updated);
+    return this.toDtoById(id);
   }
 
   async getPaymentSchedule(
@@ -183,7 +250,7 @@ export class OrderApplicationService {
   ): Promise<PaymentScheduleResponseDto> {
     await this.requireScoped(user, orderId, 'view');
     const schedule = await this.repo.getPaymentSchedule(orderId);
-    if (!schedule) throw new NotFoundException('Payment schedule not found');
+    if (!schedule) return PaymentScheduleResponseDto.empty(orderId);
     return PaymentScheduleResponseDto.from(schedule);
   }
 
@@ -203,6 +270,38 @@ export class OrderApplicationService {
       })),
     );
     return PaymentScheduleResponseDto.from(schedule);
+  }
+
+  private async toDtoById(id: string): Promise<OrderResponseDto> {
+    const record = await this.repo.findById(id);
+    if (!record) throw new NotFoundException('Order not found');
+    return (await this.toDtos([record]))[0];
+  }
+
+  private async toDtos(rows: OrderRow[]): Promise<OrderResponseDto[]> {
+    if (rows.length === 0) return [];
+    const [customers, users] = await Promise.all([
+      this.names.customersById(rows.map((r) => r.customerId)),
+      this.names.usersById(
+        rows.flatMap((r) => [
+          r.assignedUserId,
+          r.submitterUserId,
+          r.reviewerUserId,
+        ]),
+      ),
+    ]);
+    return rows.map((r) =>
+      OrderResponseDto.from(r, {
+        customerName: customers.get(r.customerId) ?? null,
+        serviceName: r.service?.name ?? null,
+        assignedUserName: users.get(r.assignedUserId) ?? null,
+        submitterName: users.get(r.submitterUserId) ?? null,
+        reviewerName: r.reviewerUserId
+          ? (users.get(r.reviewerUserId) ?? null)
+          : null,
+        collaboratorName: r.collaborator?.displayName ?? null,
+      }),
+    );
   }
 
   private async assertRefs(

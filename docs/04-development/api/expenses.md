@@ -39,8 +39,13 @@ interface Expense {
   reviewNote: string | null;
   createdAt: string;
   updatedAt: string;
+  requestedByName: string | null;
+  reviewedByName: string | null;
+  orderNumber: string | null;
 }
 ```
+
+List/detail hydrate `requestedByName` / `reviewedByName` / `orderNumber` (batch) — FE không cần N+1 `/users/:id`.
 
 ---
 

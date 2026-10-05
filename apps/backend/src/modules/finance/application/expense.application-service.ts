@@ -5,8 +5,9 @@ import {
 } from '@nestjs/common';
 import { ExpenseStatus, Prisma } from '@prisma/client';
 import { AuthUser } from '../../identity/domain/auth-user';
-import { OrderRepository } from '../infrastructure/prisma/order.repository';
+import { EntityNameLookup } from '../infrastructure/prisma/entity-name.lookup';
 import { ExpenseRepository } from '../infrastructure/prisma/expense.repository';
+import { OrderRepository } from '../infrastructure/prisma/order.repository';
 import {
   CreateExpenseDto,
   ExpenseResponseDto,
@@ -14,11 +15,16 @@ import {
   ReviewExpenseDto,
 } from './dto/expense.dto';
 
+type ExpenseRow = NonNullable<
+  Awaited<ReturnType<ExpenseRepository['findById']>>
+>;
+
 @Injectable()
 export class ExpenseApplicationService {
   constructor(
     private readonly repo: ExpenseRepository,
     private readonly orders: OrderRepository,
+    private readonly names: EntityNameLookup,
   ) {}
 
   async create(
@@ -43,7 +49,7 @@ export class ExpenseApplicationService {
       createdByUserId: user.id,
       updatedByUserId: user.id,
     });
-    return ExpenseResponseDto.from(created);
+    return (await this.toDtos([created]))[0];
   }
 
   async list(user: AuthUser, query: ListExpensesQueryDto) {
@@ -55,7 +61,7 @@ export class ExpenseApplicationService {
       orderId: query.orderId,
     });
     return {
-      items: rows.map((r) => ExpenseResponseDto.from(r)),
+      items: await this.toDtos(rows),
       total,
       page,
       pageSize,
@@ -65,7 +71,7 @@ export class ExpenseApplicationService {
   async getById(user: AuthUser, id: string): Promise<ExpenseResponseDto> {
     const record = await this.repo.findById(id);
     if (!record) throw new NotFoundException('Expense not found');
-    return ExpenseResponseDto.from(record);
+    return (await this.toDtos([record]))[0];
   }
 
   async approve(
@@ -96,7 +102,6 @@ export class ExpenseApplicationService {
       throw new BadRequestException('Expense is not pending review');
     }
 
-    // Gated only by expense.approve (RbacGuard). Any holder may review any order's expenses.
     const updated = await this.repo.update(id, {
       status,
       reviewedByUserId: user.id,
@@ -104,6 +109,26 @@ export class ExpenseApplicationService {
       reviewNote: note,
       updatedByUserId: user.id,
     });
-    return ExpenseResponseDto.from(updated);
+    return (await this.toDtos([updated]))[0];
+  }
+
+  private async toDtos(rows: ExpenseRow[]): Promise<ExpenseResponseDto[]> {
+    if (rows.length === 0) return [];
+    const [users, orders] = await Promise.all([
+      this.names.usersById(
+        rows.flatMap((r) => [r.requestedByUserId, r.reviewedByUserId]),
+      ),
+      this.names.ordersById(rows.map((r) => r.orderId)),
+    ]);
+    return rows.map((r) => {
+      const order = orders.get(r.orderId);
+      return ExpenseResponseDto.from(r, {
+        requestedByName: users.get(r.requestedByUserId) ?? null,
+        reviewedByName: r.reviewedByUserId
+          ? (users.get(r.reviewedByUserId) ?? null)
+          : null,
+        orderNumber: order?.orderNumber ?? null,
+      });
+    });
   }
 }

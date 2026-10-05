@@ -65,18 +65,28 @@ export class PaymentResponseDto {
   verificationStatus!: PaymentVerificationStatus;
   createdAt!: Date;
   updatedAt!: Date;
+  orderNumber!: string | null;
+  customerId!: string | null;
+  customerName!: string | null;
 
-  static from(record: {
-    id: string;
-    orderId: string;
-    scheduleLineId: string | null;
-    amount: Decimal;
-    method: PaymentMethod;
-    recordedAt: Date;
-    verificationStatus: PaymentVerificationStatus;
-    createdAt: Date;
-    updatedAt: Date;
-  }): PaymentResponseDto {
+  static from(
+    record: {
+      id: string;
+      orderId: string;
+      scheduleLineId: string | null;
+      amount: Decimal;
+      method: PaymentMethod;
+      recordedAt: Date;
+      verificationStatus: PaymentVerificationStatus;
+      createdAt: Date;
+      updatedAt: Date;
+    },
+    names: {
+      orderNumber?: string | null;
+      customerId?: string | null;
+      customerName?: string | null;
+    } = {},
+  ): PaymentResponseDto {
     const dto = new PaymentResponseDto();
     dto.id = record.id;
     dto.orderId = record.orderId;
@@ -87,6 +97,9 @@ export class PaymentResponseDto {
     dto.verificationStatus = record.verificationStatus;
     dto.createdAt = record.createdAt;
     dto.updatedAt = record.updatedAt;
+    dto.orderNumber = names.orderNumber ?? null;
+    dto.customerId = names.customerId ?? null;
+    dto.customerName = names.customerName ?? null;
     return dto;
   }
 }

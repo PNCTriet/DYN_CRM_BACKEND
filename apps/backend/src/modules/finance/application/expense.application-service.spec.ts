@@ -3,6 +3,7 @@ import { ExpenseStatus } from '@prisma/client';
 import { ExpenseApplicationService } from './expense.application-service';
 import { ExpenseRepository } from '../infrastructure/prisma/expense.repository';
 import { OrderRepository } from '../infrastructure/prisma/order.repository';
+import { EntityNameLookup } from '../infrastructure/prisma/entity-name.lookup';
 import { AuthUser } from '../../identity/domain/auth-user';
 
 describe('ExpenseApplicationService review', () => {
@@ -13,7 +14,15 @@ describe('ExpenseApplicationService review', () => {
   const orders = {
     findById: jest.fn(),
   } as unknown as OrderRepository;
-  const service = new ExpenseApplicationService(repo, orders);
+  const names = {
+    usersById: jest.fn().mockResolvedValue(new Map([['user-1', 'Approver']])),
+    ordersById: jest
+      .fn()
+      .mockResolvedValue(
+        new Map([['o1', { orderNumber: 'ORD-1', customerId: 'c1' }]]),
+      ),
+  } as unknown as EntityNameLookup;
+  const service = new ExpenseApplicationService(repo, orders, names);
 
   const approver: AuthUser = {
     id: 'user-1',
@@ -28,6 +37,21 @@ describe('ExpenseApplicationService review', () => {
     id: 'e1',
     orderId: 'o1',
     status: ExpenseStatus.PENDING,
+    title: 'Chi',
+    amount: 0,
+    currency: 'VND',
+    note: null,
+    payeeName: null,
+    description: null,
+    incurredOn: null,
+    ctvRelated: false,
+    requestedByUserId: 'user-1',
+    requestedAt: new Date(),
+    reviewedByUserId: null,
+    reviewedAt: null,
+    reviewNote: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   beforeEach(() => jest.clearAllMocks());

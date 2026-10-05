@@ -115,27 +115,37 @@ export class ExpenseResponseDto {
   reviewNote!: string | null;
   createdAt!: Date;
   updatedAt!: Date;
+  requestedByName!: string | null;
+  reviewedByName!: string | null;
+  orderNumber!: string | null;
 
-  static from(record: {
-    id: string;
-    orderId: string;
-    title: string;
-    amount: Decimal;
-    currency: string;
-    note: string | null;
-    payeeName: string | null;
-    description: string | null;
-    incurredOn: Date | null;
-    ctvRelated: boolean;
-    status: ExpenseStatus;
-    requestedByUserId: string;
-    requestedAt: Date;
-    reviewedByUserId: string | null;
-    reviewedAt: Date | null;
-    reviewNote: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-  }): ExpenseResponseDto {
+  static from(
+    record: {
+      id: string;
+      orderId: string;
+      title: string;
+      amount: Decimal;
+      currency: string;
+      note: string | null;
+      payeeName: string | null;
+      description: string | null;
+      incurredOn: Date | null;
+      ctvRelated: boolean;
+      status: ExpenseStatus;
+      requestedByUserId: string;
+      requestedAt: Date;
+      reviewedByUserId: string | null;
+      reviewedAt: Date | null;
+      reviewNote: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+    },
+    names: {
+      requestedByName?: string | null;
+      reviewedByName?: string | null;
+      orderNumber?: string | null;
+    } = {},
+  ): ExpenseResponseDto {
     const dto = new ExpenseResponseDto();
     dto.id = record.id;
     dto.orderId = record.orderId;
@@ -155,6 +165,9 @@ export class ExpenseResponseDto {
     dto.reviewNote = record.reviewNote;
     dto.createdAt = record.createdAt;
     dto.updatedAt = record.updatedAt;
+    dto.requestedByName = names.requestedByName ?? null;
+    dto.reviewedByName = names.reviewedByName ?? null;
+    dto.orderNumber = names.orderNumber ?? null;
     return dto;
   }
 }
