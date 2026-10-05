@@ -72,6 +72,7 @@ NEXT_PUBLIC_API_URL=https://apidyn.otcayxe.com/api/v1
 | Tasks | [tasks.md](./tasks.md) | **Live** |
 | Documents | [documents.md](./documents.md) | **Live** |
 | Orders | [orders.md](./orders.md) | **Live** |
+| FE handoff — loading / hydrate names | [FRONTEND_HANDOFF_LOADING_PERF.md](./FRONTEND_HANDOFF_LOADING_PERF.md) | **Live** |
 | Payments | [payments.md](./payments.md) | **Live** |
 | VAT invoices | [vat.md](./vat.md) | **Live** |
 | Expenses | [expenses.md](./expenses.md) | **Live** |
