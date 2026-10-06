@@ -23,14 +23,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getResponse()
         : { message: 'Internal server error' };
 
-    const message =
-      typeof body === 'string'
-        ? body
-        : ((body as { message?: string | string[] }).message ?? 'Error');
+    const payload =
+      typeof body === 'string' ? { message: body } : (body as {
+        message?: string | string[];
+        code?: unknown;
+      });
+    const message = payload.message ?? 'Error';
+    const code = typeof payload.code === 'string' ? payload.code : undefined;
 
     res.status(status).json({
       success: false,
       statusCode: status,
+      ...(code ? { code } : {}),
       error: Array.isArray(message) ? message : [message],
       timestamp: new Date().toISOString(),
     });

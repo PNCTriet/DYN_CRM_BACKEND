@@ -9,7 +9,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { RbacGuard } from '../../../common/guards/rbac.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
@@ -24,6 +29,7 @@ import {
   AssignOrderDto,
   ChangeOrderStageDto,
 } from '../application/dto/order-commands.dto';
+import { OrderResponseDto } from '../application/dto/order-response.dto';
 import { CreatePaymentScheduleDto } from '../application/dto/payment-schedule.dto';
 
 @ApiTags('orders')
@@ -63,6 +69,7 @@ export class OrdersController {
   @Get(':id')
   @RequirePermission('order.view')
   @ApiOperation({ summary: 'Get order by id' })
+  @ApiOkResponse({ type: OrderResponseDto })
   getOne(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -72,7 +79,18 @@ export class OrdersController {
 
   @Patch(':id')
   @RequirePermission('order.update')
-  @ApiOperation({ summary: 'Update order fields' })
+  @ApiOperation({
+    summary: 'Update order fields',
+    description:
+      'Omit a field to keep the stored value. null clears nullable fields (deadline, zaloGroupUrl, commissionPercent, reviewerUserId, collaboratorId, notes). ' +
+      'customerId change also sets the linked contract customer in the same transaction (409 CONTRACT_CUSTOMER_CONFLICT if other orders on that contract use a different customer). ' +
+      'serviceId does not change value or deadline. ' +
+      'submitterUserId change requires order.update at ALL scope, otherwise 400 SUBMITTER_IMMUTABLE. ' +
+      'assignedUserId change requires order.assign; POST /orders/:id/assign remains. ' +
+      'deadline is YYYY-MM-DD (Asia/Ho_Chi_Minh civil day). zaloGroupUrl is stored as zaloGroupLink and echoed as both names. ' +
+      'Response matches GET /orders/:id, including hydrated names.',
+  })
+  @ApiOkResponse({ type: OrderResponseDto })
   update(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,

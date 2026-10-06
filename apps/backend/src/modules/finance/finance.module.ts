@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { CustomerPolicy } from '../crm/domain/policies/customer.policy';
 import { IdentityModule } from '../identity/identity.module';
+import { ServicePolicy } from '../service/domain/policies/service.policy';
 import { OrderApplicationService } from './application/order.application-service';
 import { PaymentApplicationService } from './application/payment.application-service';
 import { VatInvoiceApplicationService } from './application/vat-invoice.application-service';
@@ -40,6 +42,8 @@ import { CommissionsController } from './presentation/commissions.controller';
     ExpenseRepository,
     CommissionRepository,
     OrderPolicy,
+    CustomerPolicy,
+    ServicePolicy,
   ],
   exports: [
     OrderApplicationService,
