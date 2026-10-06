@@ -24,7 +24,7 @@ export class ReminderRepository {
       recipientUserId: params.recipientUserId,
       ...(params.status ? { status: params.status } : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.reminder.findMany({
         where,
         skip: params.skip,

@@ -22,7 +22,7 @@ export class CommissionRepository {
     const where: Prisma.CommissionWhereInput = {
       ...(params.orderId ? { orderId: params.orderId } : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.commission.findMany({
         where,
         skip: params.skip,

@@ -39,7 +39,7 @@ export class CustomerRepository {
           }
         : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.customer.findMany({
         where,
         skip: params.skip,

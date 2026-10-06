@@ -32,7 +32,7 @@ export class ContractRequestRepository {
         ? { collaboratorId: params.collaboratorId }
         : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.contractRequest.findMany({
         where,
         skip: params.skip,

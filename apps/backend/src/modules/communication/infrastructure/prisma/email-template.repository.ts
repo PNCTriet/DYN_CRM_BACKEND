@@ -14,7 +14,7 @@ export class EmailTemplateRepository {
     const where: Prisma.EmailTemplateWhereInput = params.activeOnly
       ? { isActive: true }
       : {};
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.emailTemplate.findMany({
         where,
         skip: params.skip,

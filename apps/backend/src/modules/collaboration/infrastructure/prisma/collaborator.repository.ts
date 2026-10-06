@@ -37,7 +37,7 @@ export class CollaboratorRepository {
           }
         : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.collaborator.findMany({
         where,
         skip: params.skip,

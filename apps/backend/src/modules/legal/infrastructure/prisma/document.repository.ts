@@ -27,7 +27,7 @@ export class DocumentRepository {
       ...(params.contractId ? { contractId: params.contractId } : {}),
       ...(params.orderId ? { orderId: params.orderId } : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.documentMetadata.findMany({
         where,
         skip: params.skip,

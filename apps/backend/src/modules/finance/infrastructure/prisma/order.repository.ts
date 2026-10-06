@@ -65,7 +65,7 @@ export class OrderRepository {
           }
         : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.order.findMany({
         where,
         skip: params.skip,

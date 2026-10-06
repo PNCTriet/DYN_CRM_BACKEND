@@ -6,6 +6,7 @@ import {
 import { randomUUID } from 'crypto';
 import { Prisma, UserStatus } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { IdentityAccessService } from './identity-access.service';
 import {
   CreatePermissionDto,
   CreatePermissionGroupDto,
@@ -21,7 +22,10 @@ import {
 
 @Injectable()
 export class IdentityAdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly identityAccess: IdentityAccessService,
+  ) {}
 
   // ── Users ──────────────────────────────────────────────
 
@@ -41,7 +45,7 @@ export class IdentityAdminService {
           }
         : {}),
     };
-    const [items, total] = await this.prisma.$transaction([
+    const [items, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
         skip: (page - 1) * pageSize,
@@ -107,6 +111,7 @@ export class IdentityAdminService {
       },
       include: { userRoles: { include: { role: true } } },
     });
+    this.identityAccess.invalidateUser(id);
     return this.mapUser(updated);
   }
 
@@ -116,6 +121,7 @@ export class IdentityAdminService {
       where: { id },
       data: { deletedAt: new Date(), status: 'DEACTIVATED' },
     });
+    this.identityAccess.invalidateUser(id);
   }
 
   async setUserRoles(id: string, dto: SetUserRolesDto) {
@@ -132,6 +138,7 @@ export class IdentityAdminService {
         data: roles.map((r) => ({ userId: id, roleId: r.id })),
       }),
     ]);
+    this.identityAccess.invalidateUser(id);
     return this.getUser(id);
   }
 
@@ -197,6 +204,7 @@ export class IdentityAdminService {
         })),
       }),
     ]);
+    this.identityAccess.invalidateAll();
     return this.getRole(id);
   }
 
@@ -263,6 +271,7 @@ export class IdentityAdminService {
         })),
       }),
     ]);
+    this.identityAccess.invalidateAll();
     return this.getPermissionGroup(id);
   }
 
