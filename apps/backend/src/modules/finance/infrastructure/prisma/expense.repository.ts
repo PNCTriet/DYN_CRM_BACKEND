@@ -22,7 +22,7 @@ export class ExpenseRepository {
     const where: Prisma.ExpenseWhereInput = {
       ...(params.orderId ? { orderId: params.orderId } : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.expense.findMany({
         where,
         skip: params.skip,

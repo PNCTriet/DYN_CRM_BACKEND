@@ -4,6 +4,24 @@ import {
 } from './order.repository';
 import { PrismaService } from '../../../../prisma/prisma.service';
 
+describe('OrderRepository.findMany', () => {
+  it('runs the page query and the count together', async () => {
+    const prisma = {
+      order: {
+        findMany: jest.fn().mockResolvedValue([{ id: 'order-1' }]),
+        count: jest.fn().mockResolvedValue(3),
+      },
+      $transaction: jest.fn(),
+    } as unknown as PrismaService;
+    const repo = new OrderRepository(prisma);
+    await expect(repo.findMany({ skip: 0, take: 20 })).resolves.toEqual([
+      [{ id: 'order-1' }],
+      3,
+    ]);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});
+
 describe('OrderRepository.update customer sync', () => {
   const tx = {
     order: {

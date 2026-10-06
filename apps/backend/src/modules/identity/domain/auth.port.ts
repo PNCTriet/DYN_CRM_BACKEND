@@ -13,6 +13,13 @@ export interface AuthSubject {
   email: string | null;
   /** Display name hint from IdP (OAuth metadata). */
   displayName?: string | null;
+  /**
+   * Present only when a verified access token carries both claim arrays
+   * (optional Supabase Custom Access Token Hook). Never taken from an
+   * unverified payload.
+   */
+  permissionCodes?: string[];
+  roleCodes?: string[];
 }
 
 export interface SignUpInput {

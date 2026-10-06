@@ -17,6 +17,10 @@ import {
   SignUpInput,
 } from '../../domain/auth.port';
 import { MapAuthStorage } from './map-auth-storage';
+import {
+  resolveVerifiedSubject,
+  SupabaseJwtVerifier,
+} from './supabase-jwt.verifier';
 
 @Injectable()
 export class SupabaseAuthAdapter extends AuthPort {
@@ -24,7 +28,10 @@ export class SupabaseAuthAdapter extends AuthPort {
   private readonly key: string;
   private readonly client: SupabaseClient;
 
-  constructor(config: ConfigService) {
+  constructor(
+    config: ConfigService,
+    private readonly jwtVerifier: SupabaseJwtVerifier,
+  ) {
     super();
     const url = config.get<string>('SUPABASE_URL');
     const key =
@@ -165,11 +172,13 @@ export class SupabaseAuthAdapter extends AuthPort {
   }
 
   async getSubject(accessToken: string): Promise<AuthSubject | null> {
-    const { data, error } = await this.client.auth.getUser(accessToken);
-    if (error || !data.user) {
-      return null;
-    }
-    return this.subjectFromUser(data.user);
+    return resolveVerifiedSubject(accessToken, this.jwtVerifier, async (token) => {
+      const { data, error } = await this.client.auth.getUser(token);
+      if (error || !data.user) {
+        return null;
+      }
+      return this.subjectFromUser(data.user);
+    });
   }
 
   async requestPasswordReset(email: string, redirectTo?: string): Promise<void> {

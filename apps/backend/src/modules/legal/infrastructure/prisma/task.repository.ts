@@ -37,7 +37,7 @@ export class TaskRepository {
           }
         : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.task.findMany({
         where,
         skip: params.skip,

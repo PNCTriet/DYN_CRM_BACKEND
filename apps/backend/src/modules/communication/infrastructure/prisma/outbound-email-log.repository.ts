@@ -13,7 +13,7 @@ export class OutboundEmailLogRepository {
   findMany(params: { skip: number; take: number; templateKey?: string }) {
     const where: Prisma.OutboundEmailLogWhereInput = {};
     if (params.templateKey) where.templateKey = params.templateKey;
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.outboundEmailLog.findMany({
         where,
         skip: params.skip,

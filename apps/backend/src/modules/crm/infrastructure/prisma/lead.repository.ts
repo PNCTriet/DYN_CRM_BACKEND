@@ -35,7 +35,7 @@ export class LeadRepository {
           }
         : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.lead.findMany({
         where,
         skip: params.skip,

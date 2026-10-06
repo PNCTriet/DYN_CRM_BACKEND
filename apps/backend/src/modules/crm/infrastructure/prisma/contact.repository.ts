@@ -34,7 +34,7 @@ export class ContactRepository {
           }
         : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.contact.findMany({
         where,
         skip: params.skip,

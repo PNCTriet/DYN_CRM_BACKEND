@@ -14,7 +14,7 @@ export class NotificationRepository {
     const where: Prisma.NotificationWhereInput = {
       recipientUserId: params.recipientUserId,
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.notification.findMany({
         where,
         skip: params.skip,

@@ -22,7 +22,7 @@ export class PaymentRepository {
     const where: Prisma.PaymentWhereInput = {
       ...(params.orderId ? { orderId: params.orderId } : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.payment.findMany({
         where,
         skip: params.skip,

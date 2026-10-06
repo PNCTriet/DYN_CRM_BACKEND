@@ -179,7 +179,9 @@ PUT   /users/:id/roles   { "roleCodes": ["SALES"] }
 PATCH /users/:id         { "status": "ACTIVE" }
 ```
 
-User phải **đăng nhập lại hoặc refresh `/auth/me`** thì permission mới có hiệu lực.
+Đổi role, nhóm quyền, hoặc status **có hiệu lực ở request kế tiếp** trên instance vừa ghi (cache auth của user bị xóa ngay). Instance khác thấy thay đổi trong `AUTH_USER_CACHE_TTL_MS` (mặc định 45 giây). Không cần đăng nhập lại cho đường load quyền từ DB.
+
+Nếu bật Custom Access Token Hook (optional, bên dưới), permission nằm trong access token và chỉ đổi khi token được cấp lại (refresh). Status `SUSPENDED` / `DEACTIVATED` vẫn bị chặn từ DB.
 
 ### Next.js sketch
 
@@ -311,6 +313,80 @@ Seed users **chưa** có password Supabase — muốn login thật: dùng `/auth
 | `OAUTH_REDIRECT_ALLOW_PREFIX` | Prefix(es) cho phép của FE `redirectTo` (comma-separated) |
 | `OAUTH_SUCCESS_REDIRECT_URL` | Default FE callback nếu không truyền `redirectTo` |
 | `API_PUBLIC_URL` | Optional absolute API origin cho Nest OAuth callback URL |
+| `SUPABASE_JWT_SECRET` | Legacy HS256 JWT secret (Dashboard → Project Settings → API). Asymmetric projects verify via JWKS and do not need this. If unset and the token is HS256, auth falls back to Supabase `getUser` (slower, still correct). |
+| `AUTH_USER_CACHE_TTL_MS` | In-memory auth cache. Default `45000`. `0` disables it. |
+
+---
+
+## Auth on each request
+
+`Authorization: Bearer <accessToken>` still resolves to the same `AuthUser` (`id`, `email`, `displayName`, `status`, `permissions`, `roleCodes`). Response bodies are unchanged.
+
+What changed inside the guard:
+
+1. The access token is verified **locally** (HS256 with `SUPABASE_JWT_SECRET`, or ES256/RS256/EdDSA with `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`). Expired, bad-signature, and non-JWT tokens are **401** without calling Supabase Auth. If local verify cannot run (legacy HS256 and no secret, or JWKS unreachable), the guard falls back to Supabase `auth.getUser`.
+2. Permissions load in **one SQL query** (user + role codes + permission codes), then stay in an in-memory cache keyed by user id for `AUTH_USER_CACHE_TTL_MS`. Data scope (OWN / TEAM / ALL) is unchanged — it still reads `permissions` on the resolved user.
+3. Cache is dropped in-process when an admin changes that user's status or roles, or when a role's permission groups / a group's permissions change. A suspended or deactivated user is not served from cache.
+4. `AUTH_MODE=supabase` does **not** accept `test:` tokens.
+
+`permission` and `roleCodes` arrays are sorted alphabetically. Membership is the contract.
+
+### Optional: Custom Access Token Hook
+
+Not required. Without it, every cache miss reads permissions from Postgres (one query) and the API behaves as before.
+
+With it, a verified access token may carry `crm_permissions` and `crm_role_codes`. The API uses those claims only when `crm_permissions` is a **non-empty** string array, and it still loads the user row to enforce status. Empty or missing claims fall back to the database, so a hook that fails open cannot lock everyone out.
+
+Manual steps (Supabase SQL editor, then Dashboard → Authentication → Hooks → Custom Access Token):
+
+```sql
+create or replace function public.custom_access_token_hook(event jsonb)
+returns jsonb
+language plpgsql
+stable
+as $$
+declare
+  claims jsonb;
+  uid text;
+  perms text[];
+  roles text[];
+begin
+  claims := event->'claims';
+  uid := event->>'user_id';
+
+  select
+    coalesce(array_agg(distinct r.code) filter (where r.code is not null), '{}'),
+    coalesce(array_agg(distinct p.code) filter (where p.code is not null), '{}')
+  into roles, perms
+  from public.users u
+  left join public.user_roles ur on ur.user_id = u.id
+  left join public.roles r on r.id = ur.role_id
+  left join public.role_permission_groups rpg on rpg.role_id = r.id
+  left join public.group_permissions gp on gp.permission_group_id = rpg.permission_group_id
+  left join public.permissions p on p.id = gp.permission_id
+  where u.auth_subject_id = uid
+    and u.deleted_at is null
+    and u.status::text not in ('SUSPENDED', 'DEACTIVATED')
+  group by u.id;
+
+  claims := jsonb_set(claims, '{crm_role_codes}', to_jsonb(coalesce(roles, '{}'::text[])));
+  claims := jsonb_set(claims, '{crm_permissions}', to_jsonb(coalesce(perms, '{}'::text[])));
+  return jsonb_set(event, '{claims}', claims);
+end;
+$$;
+
+grant usage on schema public to supabase_auth_admin;
+grant execute on function public.custom_access_token_hook to supabase_auth_admin;
+grant select on table public.users to supabase_auth_admin;
+grant select on table public.user_roles to supabase_auth_admin;
+grant select on table public.roles to supabase_auth_admin;
+grant select on table public.role_permission_groups to supabase_auth_admin;
+grant select on table public.group_permissions to supabase_auth_admin;
+grant select on table public.permissions to supabase_auth_admin;
+revoke execute on function public.custom_access_token_hook from authenticated, anon, public;
+```
+
+Then enable the hook in the dashboard and point it at `public.custom_access_token_hook`. Keep access-token lifetime short (5–15 minutes) so a role change reaches the token quickly. Until that refresh, this API still blocks `SUSPENDED` / `DEACTIVATED` from the user row.
 
 ---
 

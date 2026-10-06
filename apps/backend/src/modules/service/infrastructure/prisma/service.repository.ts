@@ -38,7 +38,7 @@ export class ServiceRepository {
           }
         : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.service.findMany({
         where,
         skip: params.skip,

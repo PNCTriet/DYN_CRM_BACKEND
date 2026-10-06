@@ -12,6 +12,7 @@ import {
 } from './presentation/identity-admin.controller';
 import { AuthPort } from './domain/auth.port';
 import { SupabaseAuthAdapter } from './infrastructure/supabase/supabase-auth.adapter';
+import { SupabaseJwtVerifier } from './infrastructure/supabase/supabase-jwt.verifier';
 
 @Module({
   controllers: [
@@ -26,6 +27,7 @@ import { SupabaseAuthAdapter } from './infrastructure/supabase/supabase-auth.ada
     IdentityAdminService,
     AuthGuard,
     RbacGuard,
+    SupabaseJwtVerifier,
     { provide: AuthPort, useClass: SupabaseAuthAdapter },
   ],
   exports: [IdentityAccessService, AuthGuard, RbacGuard, AuthPort],

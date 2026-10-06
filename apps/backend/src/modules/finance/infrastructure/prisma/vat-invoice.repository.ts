@@ -22,7 +22,7 @@ export class VatInvoiceRepository {
     const where: Prisma.VatInvoiceWhereInput = {
       ...(params.orderId ? { orderId: params.orderId } : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.vatInvoice.findMany({
         where,
         skip: params.skip,

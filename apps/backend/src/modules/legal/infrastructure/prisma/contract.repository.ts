@@ -46,7 +46,7 @@ export class ContractRepository {
           }
         : {}),
     };
-    return this.prisma.$transaction([
+    return Promise.all([
       this.prisma.contract.findMany({
         where,
         skip: params.skip,
