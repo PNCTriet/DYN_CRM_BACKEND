@@ -1,17 +1,24 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { CustomerPolicy } from '../../crm/domain/policies/customer.policy';
 import { AuthUser } from '../../identity/domain/auth-user';
 import { mapDocument } from '../../legal/infrastructure/prisma/document.repository';
+import { ServicePolicy } from '../../service/domain/policies/service.policy';
+import { parseDateOnly } from '../domain/date-only';
 import { OrderPolicy } from '../domain/policies/order.policy';
 import { EntityNameLookup } from '../infrastructure/prisma/entity-name.lookup';
 import { ExpenseRepository } from '../infrastructure/prisma/expense.repository';
-import { OrderRepository } from '../infrastructure/prisma/order.repository';
+import {
+  ContractCustomerConflictError,
+  OrderRepository,
+} from '../infrastructure/prisma/order.repository';
 import { PaymentRepository } from '../infrastructure/prisma/payment.repository';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ExpenseResponseDto } from './dto/expense.dto';
@@ -42,6 +49,8 @@ export class OrderApplicationService {
     private readonly payments: PaymentRepository,
     private readonly expenses: ExpenseRepository,
     private readonly prisma: PrismaService,
+    private readonly customers: CustomerPolicy,
+    private readonly services: ServicePolicy,
   ) {}
 
   async create(user: AuthUser, dto: CreateOrderDto): Promise<OrderResponseDto> {
@@ -155,41 +164,121 @@ export class OrderApplicationService {
     id: string,
     dto: UpdateOrderDto,
   ): Promise<OrderResponseDto> {
-    await this.requireScoped(user, id, 'update');
-    await this.repo.update(id, {
-      ...(dto.collaboratorId !== undefined
-        ? dto.collaboratorId === null
-          ? { collaborator: { disconnect: true } }
-          : { collaborator: { connect: { id: dto.collaboratorId } } }
-        : {}),
-      ...(dto.value !== undefined
-        ? { value: new Prisma.Decimal(dto.value) }
-        : {}),
-      ...(dto.totalNet !== undefined
-        ? { totalNet: new Prisma.Decimal(dto.totalNet) }
-        : {}),
-      ...(dto.totalGross !== undefined
-        ? { totalGross: new Prisma.Decimal(dto.totalGross) }
-        : {}),
-      ...(dto.vatRate !== undefined
-        ? { vatRate: new Prisma.Decimal(dto.vatRate) }
-        : {}),
-      ...(dto.currency !== undefined ? { currency: dto.currency } : {}),
-      ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
-      ...(dto.channel !== undefined ? { channel: dto.channel } : {}),
-      ...(dto.reviewerUserId !== undefined
-        ? { reviewerUserId: dto.reviewerUserId }
-        : {}),
-      ...(dto.commissionPercent !== undefined
-        ? {
-            commissionPercent:
-              dto.commissionPercent === null
-                ? null
-                : new Prisma.Decimal(dto.commissionPercent),
-          }
-        : {}),
-      updatedByUserId: user.id,
-    });
+    const existing = await this.requireScoped(user, id, 'update');
+    const customerChanging =
+      dto.customerId !== undefined && dto.customerId !== existing.customerId;
+    const serviceChanging =
+      dto.serviceId !== undefined && dto.serviceId !== existing.serviceId;
+    const submitterChanging =
+      dto.submitterUserId !== undefined &&
+      dto.submitterUserId !== existing.submitterUserId;
+    const assigneeChanging =
+      dto.assignedUserId !== undefined &&
+      dto.assignedUserId !== existing.assignedUserId;
+
+    if (customerChanging && dto.customerId) {
+      await this.assertCustomerVisible(user, dto.customerId);
+    }
+    if (serviceChanging && dto.serviceId) {
+      await this.assertServiceVisible(user, dto.serviceId);
+    }
+    if (submitterChanging && dto.submitterUserId) {
+      if (this.policy.resolveScope(user.permissions) !== 'ALL') {
+        throw new BadRequestException({
+          message:
+            'submitterUserId can only be changed by a user with order.update at ALL scope',
+          code: 'SUBMITTER_IMMUTABLE',
+        });
+      }
+      const submitter = await this.repo.findActiveUser(dto.submitterUserId);
+      if (!submitter) {
+        throw new BadRequestException('Submitter must be an ACTIVE user');
+      }
+    }
+    if (assigneeChanging) {
+      if (!user.permissions.includes('order.assign')) {
+        throw new ForbiddenException('Missing permission: order.assign');
+      }
+    }
+
+    const deadline =
+      dto.deadline === undefined
+        ? undefined
+        : dto.deadline === null
+          ? null
+          : parseDateOnly(dto.deadline);
+
+    try {
+      await this.repo.update(
+        id,
+        {
+          ...(dto.collaboratorId !== undefined
+            ? dto.collaboratorId === null
+              ? { collaborator: { disconnect: true } }
+              : { collaborator: { connect: { id: dto.collaboratorId } } }
+            : {}),
+          ...(dto.value !== undefined
+            ? { value: new Prisma.Decimal(dto.value) }
+            : {}),
+          ...(dto.totalNet !== undefined
+            ? { totalNet: new Prisma.Decimal(dto.totalNet) }
+            : {}),
+          ...(dto.totalGross !== undefined
+            ? { totalGross: new Prisma.Decimal(dto.totalGross) }
+            : {}),
+          ...(dto.vatRate !== undefined
+            ? { vatRate: new Prisma.Decimal(dto.vatRate) }
+            : {}),
+          ...(dto.currency !== undefined ? { currency: dto.currency } : {}),
+          ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
+          ...(dto.channel !== undefined ? { channel: dto.channel } : {}),
+          ...(dto.reviewerUserId !== undefined
+            ? { reviewerUserId: dto.reviewerUserId }
+            : {}),
+          ...(dto.commissionPercent !== undefined
+            ? {
+                commissionPercent:
+                  dto.commissionPercent === null
+                    ? null
+                    : new Prisma.Decimal(dto.commissionPercent),
+              }
+            : {}),
+          ...(customerChanging && dto.customerId
+            ? { customerId: dto.customerId }
+            : {}),
+          ...(serviceChanging && dto.serviceId
+            ? { service: { connect: { id: dto.serviceId } } }
+            : {}),
+          ...(submitterChanging && dto.submitterUserId
+            ? { submitterUserId: dto.submitterUserId }
+            : {}),
+          ...(assigneeChanging && dto.assignedUserId
+            ? { assignedUserId: dto.assignedUserId }
+            : {}),
+          ...(deadline !== undefined ? { deadline } : {}),
+          ...(dto.zaloGroupUrl !== undefined
+            ? { zaloGroupLink: dto.zaloGroupUrl }
+            : {}),
+          updatedByUserId: user.id,
+        },
+        customerChanging && dto.customerId
+          ? {
+              contractId: existing.contractId,
+              customerId: dto.customerId,
+              updatedByUserId: user.id,
+            }
+          : undefined,
+      );
+    } catch (error) {
+      if (error instanceof ContractCustomerConflictError) {
+        throw new ConflictException({
+          message:
+            'Cannot change customer because the linked contract has other orders for a different customer',
+          code: 'CONTRACT_CUSTOMER_CONFLICT',
+        });
+      }
+      throw error;
+    }
     return this.toDtoById(id);
   }
 
@@ -302,6 +391,24 @@ export class OrderApplicationService {
         collaboratorName: r.collaborator?.displayName ?? null,
       }),
     );
+  }
+
+  private async assertCustomerVisible(user: AuthUser, customerId: string) {
+    const customer = await this.repo.findCustomer(customerId);
+    if (!customer) throw new BadRequestException('Customer not found');
+    const visible =
+      user.permissions.includes('customer.view') &&
+      this.customers.canView(user.id, user.permissions, customer);
+    if (!visible) throw new NotFoundException('Customer is not visible');
+  }
+
+  private async assertServiceVisible(user: AuthUser, serviceId: string) {
+    const service = await this.repo.findService(serviceId);
+    if (!service) throw new BadRequestException('Service not found');
+    const visible =
+      user.permissions.includes('service.view') &&
+      this.services.canView(user.id, user.permissions, service);
+    if (!visible) throw new NotFoundException('Service is not visible');
   }
 
   private async assertRefs(

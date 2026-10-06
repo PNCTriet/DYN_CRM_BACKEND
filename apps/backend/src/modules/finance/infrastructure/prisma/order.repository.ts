@@ -2,6 +2,22 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 
+/** Linked contract has other orders whose customer would disagree with this change. */
+export class ContractCustomerConflictError extends Error {
+  constructor() {
+    super(
+      'Cannot change customer because the linked contract has other orders for a different customer',
+    );
+    this.name = 'ContractCustomerConflictError';
+  }
+}
+
+export type OrderCustomerSync = {
+  contractId: string;
+  customerId: string;
+  updatedByUserId: string;
+};
+
 @Injectable()
 export class OrderRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -61,8 +77,39 @@ export class OrderRepository {
     ]);
   }
 
-  update(id: string, data: Prisma.OrderUpdateInput) {
-    return this.prisma.order.update({ where: { id }, data });
+  /**
+   * When `sync` is set, the order write and `contracts.customerId` commit
+   * together. Sibling orders on that contract that still point at another
+   * customer abort the transaction.
+   */
+  async update(
+    id: string,
+    data: Prisma.OrderUpdateInput,
+    sync?: OrderCustomerSync,
+  ) {
+    if (!sync) {
+      return this.prisma.order.update({ where: { id }, data });
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const others = await tx.order.count({
+        where: {
+          contractId: sync.contractId,
+          id: { not: id },
+          customerId: { not: sync.customerId },
+        },
+      });
+      if (others > 0) {
+        throw new ContractCustomerConflictError();
+      }
+      await tx.contract.update({
+        where: { id: sync.contractId },
+        data: {
+          customer: { connect: { id: sync.customerId } },
+          updatedByUserId: sync.updatedByUserId,
+        },
+      });
+      return tx.order.update({ where: { id }, data });
+    });
   }
 
   findContract(id: string) {
@@ -75,13 +122,20 @@ export class OrderRepository {
   findCustomer(id: string) {
     return this.prisma.customer.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true },
+      select: { id: true, ownerId: true },
     });
   }
 
   findService(id: string) {
     return this.prisma.service.findFirst({
       where: { id },
+      select: { id: true, createdByUserId: true },
+    });
+  }
+
+  findActiveUser(id: string) {
+    return this.prisma.user.findFirst({
+      where: { id, deletedAt: null, status: 'ACTIVE' },
       select: { id: true },
     });
   }
