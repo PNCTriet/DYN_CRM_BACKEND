@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
 import { NotificationApplicationService } from './application/notification.application-service';
+import { NotificationPublisher } from './application/notification.publisher';
 import { ReminderApplicationService } from './application/reminder.application-service';
 import { EmailTemplateApplicationService } from './application/email-template.application-service';
 import { NotificationPreferenceApplicationService } from './application/notification-preference.application-service';
@@ -27,6 +28,7 @@ import { MailController } from './presentation/mail.controller';
   ],
   providers: [
     NotificationApplicationService,
+    NotificationPublisher,
     ReminderApplicationService,
     EmailTemplateApplicationService,
     NotificationPreferenceApplicationService,
@@ -39,6 +41,7 @@ import { MailController } from './presentation/mail.controller';
   ],
   exports: [
     NotificationApplicationService,
+    NotificationPublisher,
     ReminderApplicationService,
     MailApplicationService,
     NotificationPreferenceApplicationService,

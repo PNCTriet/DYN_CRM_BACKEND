@@ -20,6 +20,7 @@ import {
   OrderRepository,
 } from '../infrastructure/prisma/order.repository';
 import { PaymentRepository } from '../infrastructure/prisma/payment.repository';
+import { NotificationPublisher } from '../../communication/application/notification.publisher';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ExpenseResponseDto } from './dto/expense.dto';
 import { ListOrdersQueryDto } from './dto/list-orders-query.dto';
@@ -51,6 +52,7 @@ export class OrderApplicationService {
     private readonly prisma: PrismaService,
     private readonly customers: CustomerPolicy,
     private readonly services: ServicePolicy,
+    private readonly notifications: NotificationPublisher,
   ) {}
 
   async create(user: AuthUser, dto: CreateOrderDto): Promise<OrderResponseDto> {
@@ -77,6 +79,12 @@ export class OrderApplicationService {
         : {}),
       createdByUserId: user.id,
       updatedByUserId: user.id,
+    });
+    await this.notifyAssignee({
+      actorId: user.id,
+      assigneeId: created.assignedUserId,
+      orderId: created.id,
+      orderNumber: created.orderNumber,
     });
     return this.toDtoById(created.id);
   }
@@ -287,11 +295,19 @@ export class OrderApplicationService {
     id: string,
     dto: AssignOrderDto,
   ): Promise<OrderResponseDto> {
-    await this.requireScoped(user, id, 'update');
+    const existing = await this.requireScoped(user, id, 'update');
     await this.repo.update(id, {
       assignedUserId: dto.assignedUserId,
       updatedByUserId: user.id,
     });
+    if (existing.assignedUserId !== dto.assignedUserId) {
+      await this.notifyAssignee({
+        actorId: user.id,
+        assigneeId: dto.assignedUserId,
+        orderId: id,
+        orderNumber: existing.orderNumber,
+      });
+    }
     return this.toDtoById(id);
   }
 
@@ -409,6 +425,25 @@ export class OrderApplicationService {
       user.permissions.includes('service.view') &&
       this.services.canView(user.id, user.permissions, service);
     if (!visible) throw new NotFoundException('Service is not visible');
+  }
+
+  private async notifyAssignee(input: {
+    actorId: string;
+    assigneeId: string;
+    orderId: string;
+    orderNumber: string;
+  }) {
+    if (!input.assigneeId || input.assigneeId === input.actorId) return;
+    await this.notifications.notify({
+      recipientUserIds: [input.assigneeId],
+      type: 'task_assigned',
+      title: `Đơn ${input.orderNumber} được giao cho bạn`,
+      body: input.orderNumber,
+      sourceType: 'order',
+      sourceId: input.orderId,
+      href: `/orders/${input.orderId}`,
+      dedupeKey: `task_assigned:${input.orderId}`,
+    });
   }
 
   private async assertRefs(

@@ -35,4 +35,14 @@ export class NotificationRepository {
       data: { readAt: new Date() },
     });
   }
+
+  findByDedupe(recipientUserId: string, dedupeKey: string) {
+    return this.prisma.notification.findFirst({
+      where: { recipientUserId, dedupeKey },
+    });
+  }
+
+  create(data: Prisma.NotificationCreateInput) {
+    return this.prisma.notification.create({ data });
+  }
 }

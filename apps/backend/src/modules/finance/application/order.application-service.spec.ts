@@ -7,6 +7,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { CustomerPolicy } from '../../crm/domain/policies/customer.policy';
 import { AuthUser } from '../../identity/domain/auth-user';
+import { NotificationPublisher } from '../../communication/application/notification.publisher';
 import { ServicePolicy } from '../../service/domain/policies/service.policy';
 import { OrderPolicy } from '../domain/policies/order.policy';
 import { EntityNameLookup } from '../infrastructure/prisma/entity-name.lookup';
@@ -106,6 +107,7 @@ describe('OrderApplicationService update', () => {
     {} as PrismaService,
     new CustomerPolicy(),
     new ServicePolicy(),
+    { notify: jest.fn() } as unknown as NotificationPublisher,
   );
 
   beforeEach(() => {

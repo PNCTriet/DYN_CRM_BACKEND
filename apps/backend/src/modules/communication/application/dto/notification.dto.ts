@@ -28,6 +28,8 @@ export class NotificationResponseDto {
   readAt!: Date | null;
   sourceType!: string | null;
   sourceId!: string | null;
+  href!: string | null;
+  dedupeKey!: string | null;
   createdAt!: Date;
   updatedAt!: Date;
 
@@ -40,6 +42,8 @@ export class NotificationResponseDto {
     readAt: Date | null;
     sourceType: string | null;
     sourceId: string | null;
+    href?: string | null;
+    dedupeKey?: string | null;
     createdAt: Date;
     updatedAt: Date;
   }): NotificationResponseDto {
@@ -52,6 +56,8 @@ export class NotificationResponseDto {
     dto.readAt = record.readAt;
     dto.sourceType = record.sourceType;
     dto.sourceId = record.sourceId;
+    dto.href = record.href ?? null;
+    dto.dedupeKey = record.dedupeKey ?? null;
     dto.createdAt = record.createdAt;
     dto.updatedAt = record.updatedAt;
     return dto;

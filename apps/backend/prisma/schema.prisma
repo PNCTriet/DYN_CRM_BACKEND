@@ -761,11 +761,14 @@ model Notification {
   readAt          DateTime? @map("read_at") @db.Timestamptz(6)
   sourceType      String?   @map("source_type")
   sourceId        String?   @map("source_id") @db.Uuid
+  href            String?
+  dedupeKey       String?   @map("dedupe_key")
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   emailLogs OutboundEmailLog[]
 
+  @@unique([recipientUserId, dedupeKey])
   @@index([recipientUserId])
   @@map("notifications")
 }

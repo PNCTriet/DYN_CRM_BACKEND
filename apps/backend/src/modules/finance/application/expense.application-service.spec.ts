@@ -4,6 +4,7 @@ import { ExpenseApplicationService } from './expense.application-service';
 import { ExpenseRepository } from '../infrastructure/prisma/expense.repository';
 import { OrderRepository } from '../infrastructure/prisma/order.repository';
 import { EntityNameLookup } from '../infrastructure/prisma/entity-name.lookup';
+import { NotificationPublisher } from '../../communication/application/notification.publisher';
 import { AuthUser } from '../../identity/domain/auth-user';
 
 describe('ExpenseApplicationService review', () => {
@@ -22,7 +23,11 @@ describe('ExpenseApplicationService review', () => {
         new Map([['o1', { orderNumber: 'ORD-1', customerId: 'c1' }]]),
       ),
   } as unknown as EntityNameLookup;
-  const service = new ExpenseApplicationService(repo, orders, names);
+  const notifications = {
+    notify: jest.fn(),
+    expenseApproverIds: jest.fn().mockResolvedValue([]),
+  } as unknown as NotificationPublisher;
+  const service = new ExpenseApplicationService(repo, orders, names, notifications);
 
   const approver: AuthUser = {
     id: 'user-1',

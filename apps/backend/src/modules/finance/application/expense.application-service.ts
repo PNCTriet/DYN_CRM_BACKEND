@@ -8,6 +8,7 @@ import { AuthUser } from '../../identity/domain/auth-user';
 import { EntityNameLookup } from '../infrastructure/prisma/entity-name.lookup';
 import { ExpenseRepository } from '../infrastructure/prisma/expense.repository';
 import { OrderRepository } from '../infrastructure/prisma/order.repository';
+import { NotificationPublisher } from '../../communication/application/notification.publisher';
 import {
   CreateExpenseDto,
   ExpenseResponseDto,
@@ -25,6 +26,7 @@ export class ExpenseApplicationService {
     private readonly repo: ExpenseRepository,
     private readonly orders: OrderRepository,
     private readonly names: EntityNameLookup,
+    private readonly notifications: NotificationPublisher,
   ) {}
 
   async create(
@@ -48,6 +50,17 @@ export class ExpenseApplicationService {
       requestedAt: new Date(),
       createdByUserId: user.id,
       updatedByUserId: user.id,
+    });
+    const approvers = await this.safeApprovers(user.id);
+    await this.notifications.notify({
+      recipientUserIds: approvers,
+      type: 'expense_pending',
+      title: `Yêu cầu duyệt chi: ${created.title}`,
+      body: created.title,
+      sourceType: 'expense',
+      sourceId: created.id,
+      href: '/expense-approvals',
+      dedupeKey: `expense_pending:${created.id}`,
     });
     return (await this.toDtos([created]))[0];
   }
@@ -109,7 +122,28 @@ export class ExpenseApplicationService {
       reviewNote: note,
       updatedByUserId: user.id,
     });
+    if (updated.requestedByUserId !== user.id) {
+      const verb = status === ExpenseStatus.APPROVED ? 'đã duyệt' : 'đã từ chối';
+      await this.notifications.notify({
+        recipientUserIds: [updated.requestedByUserId],
+        type: 'expense_reviewed',
+        title: `Chi phí ${verb}: ${updated.title}`,
+        body: note ?? updated.title,
+        sourceType: 'expense',
+        sourceId: updated.id,
+        href: '/expense-approvals',
+        dedupeKey: `expense_reviewed:${updated.id}`,
+      });
+    }
     return (await this.toDtos([updated]))[0];
+  }
+
+  private async safeApprovers(excludeUserId: string): Promise<string[]> {
+    try {
+      return await this.notifications.expenseApproverIds(excludeUserId);
+    } catch {
+      return [];
+    }
   }
 
   private async toDtos(rows: ExpenseRow[]): Promise<ExpenseResponseDto[]> {
