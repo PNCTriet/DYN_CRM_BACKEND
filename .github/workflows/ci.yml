@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    env:
+      # Dummy values only (no real secrets); Prisma generate/build do not connect.
+      DATABASE_URL: postgresql://user:pass@localhost:5432/dummy
+      DIRECT_URL: postgresql://user:pass@localhost:5432/dummy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:backend
+      - run: pnpm test:backend
