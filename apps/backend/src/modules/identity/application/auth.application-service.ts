@@ -1,10 +1,12 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { UserStatus } from '@prisma/client';
+import { NotificationPublisher } from '../../communication/application/notification.publisher';
 import { AuthPort, AuthTokens } from '../domain/auth.port';
 import { AuthUser } from '../domain/auth-user';
 import { IdentityAccessService } from './identity-access.service';
@@ -43,10 +45,13 @@ export interface GoogleOAuthCompleteResult {
 
 @Injectable()
 export class AuthApplicationService {
+  private readonly logger = new Logger(AuthApplicationService.name);
+
   constructor(
     private readonly authPort: AuthPort,
     private readonly identityAccess: IdentityAccessService,
     private readonly config: ConfigService,
+    private readonly notifications: NotificationPublisher,
   ) {}
 
   async signUp(
@@ -179,6 +184,7 @@ export class AuthApplicationService {
         defaultRoleCode: null,
         status: UserStatus.PENDING_APPROVAL,
       });
+      await this.notifyPendingApproval(user);
     }
     const session = this.toSession(tokens, user);
     return {
@@ -201,6 +207,33 @@ export class AuthApplicationService {
       error_description: message.slice(0, 200),
     }).toString();
     return url.toString();
+  }
+
+  /**
+   * Google first sign-up only. Password signup and admin POST /users stay silent.
+   * Recipients are ACTIVE users who can approve users (`user.manage`).
+   */
+  private async notifyPendingApproval(user: AuthUser): Promise<void> {
+    try {
+      const recipientUserIds =
+        await this.notifications.activeUserIdsWithPermission(
+          'user.manage',
+          user.id,
+        );
+      await this.notifications.notify({
+        recipientUserIds,
+        type: 'user_pending',
+        title: `Tài khoản chờ duyệt: ${user.displayName}`,
+        body: user.email || null,
+        sourceType: 'user',
+        sourceId: user.id,
+        href: '/users/pending',
+        dedupeKey: `user_pending:${user.id}`,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(`user_pending notify failed: ${message}`);
+    }
   }
 
   private resolveFeRedirect(redirectToFe: string | undefined): string {

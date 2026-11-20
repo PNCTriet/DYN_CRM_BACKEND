@@ -4,6 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AuthUser } from '../../identity/domain/auth-user';
+import {
+  emptyCategoryCounts,
+  isNotificationCategory,
+  type NotificationCategory,
+} from '../domain/notification-category';
 import { NotificationRepository } from '../infrastructure/prisma/notification.repository';
 import {
   ListNotificationsQueryDto,
@@ -21,6 +26,7 @@ export class NotificationApplicationService {
       skip: (page - 1) * pageSize,
       take: pageSize,
       recipientUserId: user.id,
+      category: query.category,
     });
     return {
       items: rows.map((r) => NotificationResponseDto.from(r)),
@@ -41,5 +47,30 @@ export class NotificationApplicationService {
     }
     const updated = await this.repo.markRead(id);
     return NotificationResponseDto.from(updated);
+  }
+
+  async unreadCount(user: AuthUser): Promise<{
+    total: number;
+    byCategory: Record<NotificationCategory, number>;
+  }> {
+    const groups = await this.repo.countUnreadByCategory(user.id);
+    const byCategory = emptyCategoryCounts();
+    let total = 0;
+    for (const group of groups) {
+      const count = group._count._all;
+      total += count;
+      if (isNotificationCategory(group.category)) {
+        byCategory[group.category] += count;
+      }
+    }
+    return { total, byCategory };
+  }
+
+  async markAllRead(
+    user: AuthUser,
+    category?: NotificationCategory,
+  ): Promise<{ updated: number }> {
+    const result = await this.repo.markAllRead(user.id, category);
+    return { updated: result.count };
   }
 }

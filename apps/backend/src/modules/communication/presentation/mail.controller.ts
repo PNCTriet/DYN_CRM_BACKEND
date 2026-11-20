@@ -45,7 +45,7 @@ export class MailController {
   @ApiOperation({
     summary: 'Send templated email (admin / integration)',
   })
-  send(@Body() dto: SendTemplatedMailDto) {
-    return this.mail.sendTemplated(dto);
+  send(@CurrentUser() user: AuthUser, @Body() dto: SendTemplatedMailDto) {
+    return this.mail.sendTemplated(dto, user.id);
   }
 }

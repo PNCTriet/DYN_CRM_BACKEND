@@ -4,6 +4,7 @@ import { AuthUser } from '../../identity/domain/auth-user';
 import { EmailTemplateRepository } from '../infrastructure/prisma/email-template.repository';
 import { OutboundEmailLogRepository } from '../infrastructure/prisma/outbound-email-log.repository';
 import { NotificationPreferenceApplicationService } from './notification-preference.application-service';
+import { NotificationPublisher } from './notification.publisher';
 import { renderTemplate } from './render-template';
 import {
   ListOutboundEmailsQueryDto,
@@ -27,6 +28,7 @@ export class MailApplicationService {
     private readonly templates: EmailTemplateRepository,
     private readonly logs: OutboundEmailLogRepository,
     private readonly preferences: NotificationPreferenceApplicationService,
+    private readonly notifications: NotificationPublisher,
   ) {}
 
   status() {
@@ -52,18 +54,24 @@ export class MailApplicationService {
     };
   }
 
-  async sendTest(_user: AuthUser, dto: SendTestMailDto): Promise<SendMailOutcome> {
-    return this.sendTemplated({
-      templateKey: 'mail.test',
-      to: dto.to,
-      variables: {
-        time: new Date().toISOString(),
+  async sendTest(user: AuthUser, dto: SendTestMailDto): Promise<SendMailOutcome> {
+    return this.sendTemplated(
+      {
+        templateKey: 'mail.test',
+        to: dto.to,
+        variables: {
+          time: new Date().toISOString(),
+        },
+        eventType: 'mail.test',
       },
-      eventType: 'mail.test',
-    });
+      user.id,
+    );
   }
 
-  async sendTemplated(dto: SendTemplatedMailDto): Promise<SendMailOutcome> {
+  async sendTemplated(
+    dto: SendTemplatedMailDto,
+    actorUserId?: string,
+  ): Promise<SendMailOutcome> {
     const eventType = dto.eventType ?? dto.templateKey;
 
     if (dto.recipientUserId) {
@@ -134,6 +142,14 @@ export class MailApplicationService {
             }
           : {}),
       });
+      await this.notifyDelivery({
+        failed: false,
+        logId: log.id,
+        subject,
+        toAddress: dto.to,
+        actorUserId,
+        recipientUserId: dto.recipientUserId,
+      });
 
       return {
         skipped: false,
@@ -142,7 +158,7 @@ export class MailApplicationService {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.error(`sendTemplated failed: ${message}`);
-      await this.logs.create({
+      const log = await this.logs.create({
         toAddress: dto.to,
         fromAddress: this.mail.getDefaultFrom(),
         templateKey: dto.templateKey,
@@ -155,7 +171,49 @@ export class MailApplicationService {
             }
           : {}),
       });
+      await this.notifyDelivery({
+        failed: true,
+        logId: log.id,
+        subject,
+        toAddress: dto.to,
+        errorMessage: message,
+        actorUserId,
+        recipientUserId: dto.recipientUserId,
+      });
       throw err;
     }
+  }
+
+  /**
+   * Inbox row for the person who triggered the send. Falls back to
+   * `recipientUserId` when the call has no actor (no preference-skip rows).
+   */
+  private async notifyDelivery(input: {
+    failed: boolean;
+    logId: string;
+    subject: string | null;
+    toAddress: string;
+    errorMessage?: string;
+    actorUserId?: string;
+    recipientUserId?: string;
+  }): Promise<void> {
+    const recipientUserId = input.actorUserId || input.recipientUserId;
+    if (!recipientUserId) return;
+    const type = input.failed ? 'email_failed' : 'email_sent';
+    const subject = input.subject?.trim() || input.toAddress;
+    await this.notifications.notify({
+      recipientUserIds: [recipientUserId],
+      type,
+      title: input.failed
+        ? `Gửi email thất bại: ${subject}`
+        : `Email đã gửi: ${subject}`,
+      body: input.failed
+        ? (input.errorMessage ?? input.toAddress).slice(0, 500)
+        : `Đến ${input.toAddress}`,
+      sourceType: 'email',
+      sourceId: input.logId,
+      href: '/emails',
+      dedupeKey: `${type}:${input.logId}`,
+    });
   }
 }
