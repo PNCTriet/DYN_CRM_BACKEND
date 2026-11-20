@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { NotificationCoreModule } from '../communication/notification-core.module';
+import { OrderPolicy } from '../finance/domain/policies/order.policy';
 import { IdentityModule } from '../identity/identity.module';
 import { CustomerApplicationService } from './application/customer.application-service';
 import { LeadApplicationService } from './application/lead.application-service';
@@ -15,7 +17,8 @@ import {
   CustomerFollowersController,
   CustomerFollowersService,
 } from './presentation/customer-followers.controller';
-import { NotesController, NotesService } from './presentation/notes.controller';
+import { NotesApplicationService } from './application/notes.application-service';
+import { NotesController } from './presentation/notes.controller';
 import {
   ActivitiesController,
   ActivitiesService,
@@ -24,7 +27,7 @@ import { ImportApplicationService } from './application/import.application-servi
 import { ImportsController } from './presentation/imports.controller';
 
 @Module({
-  imports: [IdentityModule],
+  imports: [IdentityModule, NotificationCoreModule],
   controllers: [
     CustomersController,
     CustomerFollowersController,
@@ -44,8 +47,9 @@ import { ImportsController } from './presentation/imports.controller';
     ContactRepository,
     CustomerPolicy,
     LeadPolicy,
+    OrderPolicy,
     CustomerFollowersService,
-    NotesService,
+    NotesApplicationService,
     ActivitiesService,
   ],
   exports: [CustomerApplicationService, LeadApplicationService],

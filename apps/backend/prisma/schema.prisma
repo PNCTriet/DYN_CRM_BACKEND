@@ -100,6 +100,7 @@ model User {
   ownedCustomers Customer[] @relation("CustomerOwner")
   customerFollowers CustomerFollower[]
   ownedLeads Lead[] @relation("LeadOwner")
+  noteMentions NoteMention[]
 
   @@index([email])
   @@index([phone])
@@ -287,8 +288,26 @@ model Note {
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  mentions NoteMention[]
+
   @@index([subjectType, subjectId])
   @@map("notes")
+}
+
+/// Users @-mentioned on a note. Order discussion stores mentions here;
+/// notification fan-out is decided in the application layer.
+model NoteMention {
+  noteId    String   @map("note_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@id([noteId, userId])
+  @@index([userId])
+  @@map("note_mentions")
 }
 
 model Activity {
