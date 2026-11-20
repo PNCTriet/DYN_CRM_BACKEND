@@ -756,6 +756,8 @@ model Notification {
   id              String    @id @default(uuid()) @db.Uuid
   recipientUserId String    @map("recipient_user_id") @db.Uuid
   type            String
+  /// Sidebar bucket: orders | expenses | payments | vat | licenses | users | emails
+  category        String
   title           String
   body            String?
   readAt          DateTime? @map("read_at") @db.Timestamptz(6)
@@ -770,6 +772,7 @@ model Notification {
 
   @@unique([recipientUserId, dedupeKey])
   @@index([recipientUserId])
+  @@index([recipientUserId, readAt])
   @@map("notifications")
 }
 

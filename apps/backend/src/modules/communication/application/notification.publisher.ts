@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, UserStatus } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { categoryForType } from '../domain/notification-category';
 import { NotificationRepository } from '../infrastructure/prisma/notification.repository';
 
 export type NotifyInput = {
@@ -27,23 +28,36 @@ export class NotificationPublisher {
     private readonly prisma: PrismaService,
   ) {}
 
-  async notify(input: NotifyInput): Promise<void> {
-    const ids = [
-      ...new Set(input.recipientUserIds.filter((id) => !!id)),
-    ];
-    if (ids.length === 0) return;
+  async notify(
+    input: NotifyInput,
+  ): Promise<{ inserted: number; existing: number }> {
+    const ids = [...new Set(input.recipientUserIds.filter((id) => !!id))];
+    if (ids.length === 0) return { inserted: 0, existing: 0 };
+    let inserted = 0;
+    let existing = 0;
     try {
       for (const recipientUserId of ids) {
-        await this.insertOrReturn(recipientUserId, input);
+        const created = await this.insertOrReturn(recipientUserId, input);
+        if (created) inserted += 1;
+        else existing += 1;
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.error(`notify failed: ${message}`);
     }
+    return { inserted, existing };
   }
 
   /** ACTIVE users whose roles include expense.approve, excluding one id. */
-  async expenseApproverIds(excludeUserId?: string): Promise<string[]> {
+  expenseApproverIds(excludeUserId?: string): Promise<string[]> {
+    return this.activeUserIdsWithPermission('expense.approve', excludeUserId);
+  }
+
+  /** ACTIVE users whose roles include `permissionCode`, excluding one id. */
+  async activeUserIdsWithPermission(
+    permissionCode: string,
+    excludeUserId?: string,
+  ): Promise<string[]> {
     const rows = await this.prisma.user.findMany({
       where: {
         status: UserStatus.ACTIVE,
@@ -56,7 +70,7 @@ export class NotificationPublisher {
                 some: {
                   permissionGroup: {
                     groupPermissions: {
-                      some: { permission: { code: 'expense.approve' } },
+                      some: { permission: { code: permissionCode } },
                     },
                   },
                 },
@@ -67,19 +81,24 @@ export class NotificationPublisher {
       },
       select: { id: true },
     });
-    return rows.map((r) => r.id);
+    return rows.map((row) => row.id);
   }
 
-  private async insertOrReturn(recipientUserId: string, input: NotifyInput) {
+  /** @returns true when a new row was inserted. */
+  private async insertOrReturn(
+    recipientUserId: string,
+    input: NotifyInput,
+  ): Promise<boolean> {
     const existing = await this.repo.findByDedupe(
       recipientUserId,
       input.dedupeKey,
     );
-    if (existing) return existing;
+    if (existing) return false;
     try {
-      return await this.repo.create({
+      await this.repo.create({
         recipientUserId,
         type: input.type,
+        category: categoryForType(input.type),
         title: input.title,
         body: input.body ?? null,
         sourceType: input.sourceType ?? null,
@@ -87,12 +106,13 @@ export class NotificationPublisher {
         href: input.href ?? null,
         dedupeKey: input.dedupeKey,
       });
+      return true;
     } catch (err) {
       if (
         err instanceof Prisma.PrismaClientKnownRequestError &&
         err.code === 'P2002'
       ) {
-        return this.repo.findByDedupe(recipientUserId, input.dedupeKey);
+        return false;
       }
       throw err;
     }

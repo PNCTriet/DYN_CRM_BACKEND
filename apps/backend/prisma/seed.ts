@@ -885,6 +885,7 @@ async function seedDomainData() {
     data: {
       recipientUserId: IDS.sales,
       type: 'ORDER_UPDATE',
+      category: 'orders',
       title: 'Order seed đã tạo',
       body: 'ORD-SEED-001',
       sourceType: 'ORDER',

@@ -6,6 +6,7 @@ import {
 import { randomUUID } from 'crypto';
 import { Prisma, UserStatus } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { NotificationPublisher } from '../../communication/application/notification.publisher';
 import { IdentityAccessService } from './identity-access.service';
 import {
   CreatePermissionDto,
@@ -25,6 +26,7 @@ export class IdentityAdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly identityAccess: IdentityAccessService,
+    private readonly notifications: NotificationPublisher,
   ) {}
 
   // ── Users ──────────────────────────────────────────────
@@ -98,7 +100,7 @@ export class IdentityAdminService {
   }
 
   async updateUser(id: string, dto: UpdateUserDto) {
-    await this.requireUser(id);
+    const existing = await this.requireUser(id);
     const updated = await this.prisma.user.update({
       where: { id },
       data: {
@@ -112,6 +114,12 @@ export class IdentityAdminService {
       include: { userRoles: { include: { role: true } } },
     });
     this.identityAccess.invalidateUser(id);
+    if (
+      dto.status === 'ACTIVE' &&
+      existing.status === UserStatus.PENDING_APPROVAL
+    ) {
+      await this.notifyApproved(updated);
+    }
     return this.mapUser(updated);
   }
 
@@ -276,6 +284,30 @@ export class IdentityAdminService {
   }
 
   // ── helpers ────────────────────────────────────────────
+
+  /**
+   * Approval is PENDING_APPROVAL → ACTIVE. Creating an already-ACTIVE staff
+   * user does not come through here.
+   */
+  private async notifyApproved(user: {
+    id: string;
+    displayName: string;
+  }): Promise<void> {
+    try {
+      await this.notifications.notify({
+        recipientUserIds: [user.id],
+        type: 'user_approved',
+        title: 'Tài khoản của bạn đã được duyệt',
+        body: user.displayName,
+        sourceType: 'user',
+        sourceId: user.id,
+        href: '/dashboard',
+        dedupeKey: `user_approved:${user.id}`,
+      });
+    } catch {
+      // Inbox failures must not roll back the approval.
+    }
+  }
 
   private async requireUser(id: string) {
     const u = await this.prisma.user.findFirst({

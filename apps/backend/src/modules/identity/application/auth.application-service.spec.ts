@@ -3,6 +3,7 @@ import { AuthPort } from '../domain/auth.port';
 import { IdentityAccessService } from './identity-access.service';
 import { ConfigService } from '@nestjs/config';
 import { BadRequestException } from '@nestjs/common';
+import { NotificationPublisher } from '../../communication/application/notification.publisher';
 
 describe('AuthApplicationService', () => {
   const authPort = {
@@ -32,7 +33,17 @@ describe('AuthApplicationService', () => {
     get: jest.fn((key: string) => configMap[key]),
   } as unknown as ConfigService;
 
-  const service = new AuthApplicationService(authPort, identityAccess, config);
+  const notifications = {
+    notify: jest.fn().mockResolvedValue({ inserted: 1, existing: 0 }),
+    activeUserIdsWithPermission: jest.fn().mockResolvedValue(['admin-1']),
+  };
+
+  const service = new AuthApplicationService(
+    authPort,
+    identityAccess,
+    config,
+    notifications as unknown as NotificationPublisher,
+  );
 
   const sampleUser = {
     id: 'u1',
@@ -64,6 +75,7 @@ describe('AuthApplicationService', () => {
       displayName: 'A',
     });
     expect(res).toMatchObject({ accessToken: 'at', user: { id: 'u1' } });
+    expect(notifications.notify).not.toHaveBeenCalled();
   });
 
   it('signup without session returns email confirmation pending', async () => {
@@ -167,6 +179,20 @@ describe('AuthApplicationService', () => {
       expect(res.redirectUrl).toContain('http://localhost:3001/auth/callback#');
       expect(res.redirectUrl).toContain('access_token=at');
       expect(res.redirectUrl).toContain('refresh_token=rt');
+      expect(notifications.activeUserIdsWithPermission).toHaveBeenCalledWith(
+        'user.manage',
+        'u1',
+      );
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'user_pending',
+          recipientUserIds: ['admin-1'],
+          href: '/users/pending',
+          dedupeKey: 'user_pending:u1',
+          sourceType: 'user',
+          sourceId: 'u1',
+        }),
+      );
     });
 
     it('completeGoogleOAuth skips provision when user exists', async () => {
@@ -184,6 +210,7 @@ describe('AuthApplicationService', () => {
         'http://localhost:3001/auth/callback',
       );
       expect(identityAccess.ensureLocalUser).not.toHaveBeenCalled();
+      expect(notifications.notify).not.toHaveBeenCalled();
     });
 
     it('completeGoogleOAuth rejects disallowed feRedirect', async () => {

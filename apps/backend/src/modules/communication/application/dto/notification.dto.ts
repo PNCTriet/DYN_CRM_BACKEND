@@ -1,6 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
+import {
+  NOTIFICATION_CATEGORIES,
+  type NotificationCategory,
+} from '../../domain/notification-category';
 
 export class ListNotificationsQueryDto {
   @ApiPropertyOptional({ default: 1 })
@@ -17,12 +21,29 @@ export class ListNotificationsQueryDto {
   @Min(1)
   @Max(100)
   pageSize?: number;
+
+  @ApiPropertyOptional({
+    enum: NOTIFICATION_CATEGORIES,
+    description:
+      'Sidebar bucket: orders, expenses, payments, vat, licenses, users, emails',
+  })
+  @IsOptional()
+  @IsIn(NOTIFICATION_CATEGORIES)
+  category?: NotificationCategory;
+}
+
+export class MarkAllNotificationsQueryDto {
+  @ApiPropertyOptional({ enum: NOTIFICATION_CATEGORIES })
+  @IsOptional()
+  @IsIn(NOTIFICATION_CATEGORIES)
+  category?: NotificationCategory;
 }
 
 export class NotificationResponseDto {
   id!: string;
   recipientUserId!: string;
   type!: string;
+  category!: string;
   title!: string;
   body!: string | null;
   readAt!: Date | null;
@@ -37,6 +58,7 @@ export class NotificationResponseDto {
     id: string;
     recipientUserId: string;
     type: string;
+    category?: string;
     title: string;
     body: string | null;
     readAt: Date | null;
@@ -51,6 +73,7 @@ export class NotificationResponseDto {
     dto.id = record.id;
     dto.recipientUserId = record.recipientUserId;
     dto.type = record.type;
+    dto.category = record.category ?? 'orders';
     dto.title = record.title;
     dto.body = record.body;
     dto.readAt = record.readAt;

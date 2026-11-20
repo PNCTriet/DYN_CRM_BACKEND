@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { NotificationCoreModule } from '../communication/notification-core.module';
 import { IdentityAccessService } from './application/identity-access.service';
 import { AuthApplicationService } from './application/auth.application-service';
 import { IdentityAdminService } from './application/identity-admin.service';
@@ -15,6 +16,7 @@ import { SupabaseAuthAdapter } from './infrastructure/supabase/supabase-auth.ada
 import { SupabaseJwtVerifier } from './infrastructure/supabase/supabase-jwt.verifier';
 
 @Module({
+  imports: [NotificationCoreModule],
   controllers: [
     AuthController,
     UsersController,

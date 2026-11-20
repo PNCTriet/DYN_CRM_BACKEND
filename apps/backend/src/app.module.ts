@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { resolve } from 'path';
 import { PrismaModule } from './prisma/prisma.module';
 import { StorageModule } from './common/storage/storage.module';
@@ -20,6 +21,7 @@ import { WidgetoModule } from './modules/widgeto/widgeto.module';
       isGlobal: true,
       envFilePath: resolve(process.cwd(), '.env'),
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     StorageModule,
     MailModule,
