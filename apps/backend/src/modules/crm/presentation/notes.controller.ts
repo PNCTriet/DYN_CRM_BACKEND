@@ -5,8 +5,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Injectable,
-  NotFoundException,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -18,18 +16,24 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiProperty,
+  ApiPropertyOptional,
   ApiTags,
 } from '@nestjs/swagger';
-import { IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsArray,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 import { AuthGuard } from '../../../common/guards/auth.guard';
 import { RbacGuard } from '../../../common/guards/rbac.guard';
-import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { AuthUser } from '../../identity/domain/auth-user';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { NotesApplicationService } from '../application/notes.application-service';
 
 class CreateNoteDto {
-  @ApiProperty({ example: 'CUSTOMER' })
+  @ApiProperty({ example: 'ORDER', enum: ['CUSTOMER', 'LEAD', 'ORDER'] })
   @IsString()
   subjectType!: string;
 
@@ -41,6 +45,15 @@ class CreateNoteDto {
   @IsString()
   @MaxLength(10000)
   content!: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'ORDER notes only. Active user ids; duplicates are stored once.',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('all', { each: true })
+  mentionedUserIds?: string[];
 }
 
 class UpdateNoteDto {
@@ -51,7 +64,7 @@ class UpdateNoteDto {
 }
 
 class ListNotesQueryDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'ORDER' })
   @IsString()
   subjectType!: string;
 
@@ -60,66 +73,36 @@ class ListNotesQueryDto {
   subjectId!: string;
 }
 
-@Injectable()
-export class NotesService {
-  constructor(private readonly prisma: PrismaService) {}
-
-  create(user: AuthUser, dto: CreateNoteDto) {
-    return this.prisma.note.create({
-      data: {
-        subjectType: dto.subjectType,
-        subjectId: dto.subjectId,
-        content: dto.content,
-        createdByUserId: user.id,
-        updatedByUserId: user.id,
-      },
-    });
-  }
-
-  list(query: ListNotesQueryDto) {
-    return this.prisma.note.findMany({
-      where: { subjectType: query.subjectType, subjectId: query.subjectId },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
-  async update(user: AuthUser, id: string, dto: UpdateNoteDto) {
-    const note = await this.prisma.note.findFirst({ where: { id } });
-    if (!note) throw new NotFoundException('Note not found');
-    return this.prisma.note.update({
-      where: { id },
-      data: { content: dto.content, updatedByUserId: user.id },
-    });
-  }
-
-  async remove(id: string) {
-    await this.prisma.note.delete({ where: { id } });
-  }
-}
-
 @ApiTags('notes')
 @ApiBearerAuth('bearer')
 @Controller('notes')
 @UseGuards(AuthGuard, RbacGuard)
 export class NotesController {
-  constructor(private readonly notes: NotesService) {}
+  constructor(private readonly notes: NotesApplicationService) {}
 
   @Post()
-  @RequirePermission('customer.update')
-  @ApiOperation({ summary: 'Create note on subject (CUSTOMER|LEAD|…)' })
+  @ApiOperation({
+    summary:
+      'Create a note. CUSTOMER|LEAD requires customer.update. ORDER requires order.update inside OrderPolicy scope.',
+  })
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateNoteDto) {
     return this.notes.create(user, dto);
   }
 
   @Get()
-  @RequirePermission('customer.view')
-  @ApiOperation({ summary: 'List notes by subjectType + subjectId' })
-  list(@Query() query: ListNotesQueryDto) {
-    return this.notes.list(query);
+  @ApiOperation({
+    summary:
+      'List notes, newest first. CUSTOMER|LEAD requires customer.view. ORDER requires order.view inside OrderPolicy scope.',
+  })
+  list(@CurrentUser() user: AuthUser, @Query() query: ListNotesQueryDto) {
+    return this.notes.list(user, query);
   }
 
   @Patch(':id')
-  @RequirePermission('customer.update')
+  @ApiOperation({
+    summary:
+      'Update note content. CUSTOMER|LEAD requires customer.update. ORDER allows the author, or order.update inside scope.',
+  })
   update(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -130,8 +113,11 @@ export class NotesController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @RequirePermission('customer.update')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.notes.remove(id);
+  @ApiOperation({
+    summary:
+      'Delete a note. CUSTOMER|LEAD requires customer.update. ORDER allows the author, or order.update inside scope.',
+  })
+  remove(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.notes.remove(user, id);
   }
 }

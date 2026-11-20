@@ -23,6 +23,16 @@ const USER_STATUSES = [
   'DEACTIVATED',
 ] as const;
 
+export class UserDirectoryQueryDto {
+  @ApiPropertyOptional({
+    description: 'Case-insensitive match on displayName or email',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  q?: string;
+}
+
 export class ListUsersQueryDto {
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()
