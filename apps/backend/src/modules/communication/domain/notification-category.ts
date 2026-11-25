@@ -20,6 +20,7 @@ export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 
 export const NOTIFICATION_TYPES = [
   'task_assigned',
+  'order_mentioned',
   'order_overdue',
   'expense_pending',
   'expense_reviewed',
@@ -37,6 +38,7 @@ export type NotificationTypeName = (typeof NOTIFICATION_TYPES)[number];
 
 const TYPE_CATEGORY: Record<NotificationTypeName, NotificationCategory> = {
   task_assigned: 'orders',
+  order_mentioned: 'orders',
   order_overdue: 'orders',
   expense_pending: 'expenses',
   expense_reviewed: 'expenses',

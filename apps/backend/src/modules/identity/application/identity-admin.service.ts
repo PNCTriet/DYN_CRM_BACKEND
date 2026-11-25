@@ -14,6 +14,7 @@ import {
   CreateRoleDto,
   CreateUserDto,
   ListUsersQueryDto,
+  UserDirectoryQueryDto,
   SetGroupPermissionsDto,
   SetRolePermissionGroupsDto,
   SetUserRolesDto,
@@ -63,6 +64,34 @@ export class IdentityAdminService {
       page,
       pageSize,
     };
+  }
+
+  /** Active staff for the order-note mention picker. Not an admin user list. */
+  async directory(query: UserDirectoryQueryDto) {
+    const q = query.q?.trim();
+    const where: Prisma.UserWhereInput = {
+      status: UserStatus.ACTIVE,
+      deletedAt: null,
+      ...(q
+        ? {
+            OR: [
+              { displayName: { contains: q, mode: 'insensitive' } },
+              { email: { contains: q, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+    const rows = await this.prisma.user.findMany({
+      where,
+      take: 50,
+      orderBy: { displayName: 'asc' },
+      select: { id: true, displayName: true, email: true },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      displayName: row.displayName,
+      email: row.email,
+    }));
   }
 
   async getUser(id: string) {

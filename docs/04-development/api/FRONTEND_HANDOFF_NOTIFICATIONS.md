@@ -13,7 +13,7 @@ Checked against `apps/web/src/components/layout/app-shell.tsx` and `SYSTEM_PAGES
 
 | `category` | Sidebar label (vi) | i18n | Route the badge belongs to | Types |
 |------------|--------------------|------|-----------------------------|-------|
-| `orders` | Quản lý đơn hàng | `nav.orders` | `/orders` | `task_assigned`, `order_overdue` |
+| `orders` | Quản lý đơn hàng | `nav.orders` | `/orders` | `task_assigned`, `order_mentioned`, `order_overdue` |
 | `expenses` | Đề nghị thanh toán | `nav.expenses` | `/expense-approvals` | `expense_pending`, `expense_reviewed` |
 | `payments` | Quản lý thanh toán | `nav.payments` | `/payments` | `payment_overdue` |
 | `vat` | Quản lý VAT | `nav.vat` | `/vat` | `vat_deadline_approaching`, `vat_overdue` |
@@ -85,6 +85,7 @@ Dates below are civil days in **Asia/Ho_Chi_Minh**. The job runs at **07:00** th
 | `type` | `category` | When | Recipient | Not sent when | `dedupeKey` | `href` |
 |--------|------------|------|-----------|---------------|-------------|--------|
 | `task_assigned` | orders | `POST /orders` with an assignee, or `POST /orders/:id/assign` when the assignee changes | new `assignedUserId` | assignee is the actor | `task_assigned:<orderId>` | `/orders/<orderId>` |
+| `order_mentioned` | orders | `POST /notes` `subjectType=ORDER` | each mentioned user who can view the order | author; inactive; no `order.view`; outside OWN/ALL scope. Not sent again on PATCH | `order_mentioned:<noteId>:<recipientUserId>` | `/orders/<orderId>?tab=notes` |
 | `expense_pending` | expenses | `POST /expenses` (`PENDING`) | every ACTIVE user with `expense.approve` | the requester | `expense_pending:<expenseId>` | `/expense-approvals` |
 | `expense_reviewed` | expenses | approve or reject | `requestedByUserId` | requester is the reviewer | `expense_reviewed:<expenseId>` | `/expense-approvals` |
 | `order_overdue` | orders | daily, `deadline < today`, stage not completed/cancelled | assignee if ACTIVE | no deadline; completed; cancelled | `order_overdue:<orderId>:<YYYY-MM-DD>` | `/orders/<orderId>` |
@@ -99,7 +100,45 @@ Dates below are civil days in **Asia/Ho_Chi_Minh**. The job runs at **07:00** th
 
 VAT warn days come from app config `crm.reminders.vatIssueWarnDays` (default 30, clamp 7–90), same as the UI. License months come from `service.customFields.licenseExpiryWarnMonths` (default 2, clamp 1–24). License dates are read from `document_metadata.file_type` encoded `license|{issuedAt}|{expiresAt}`. `serviceEnd` is not a license expiry. If the earliest license date is already past, that is expired and this job does not emit `license_expiring` (there is no `license_expired` type).
 
-Not created for `PATCH /orders`, `POST /orders/:id/change-stage`, `POST /orders/:id/approve`, admin create of an already-ACTIVE user, or `POST /reminders`.
+Not created for `PATCH /orders`, `POST /orders/:id/change-stage`, `POST /orders/:id/approve`, `PATCH /notes/:id`, CUSTOMER/LEAD notes, admin create of an already-ACTIVE user, or `POST /reminders`.
+
+`order_mentioned` title is `{authorName} nhắc bạn trong đơn {orderNumber}` (for example `Minh nhắc bạn trong đơn DH-1042`). Body is the note text, trimmed, at most 120 characters, with `…` when it is cut. The orders sidebar badge counts it because `category` is `orders`. A failed inbox write does not remove the note.
+
+## Trao đổi trên đơn — notes ORDER
+
+Migration `20261120160000_note_mentions` (table `note_mentions`). Same `/notes` routes. CUSTOMER and LEAD stay on `customer.view` / `customer.update`.
+
+| Call | ORDER permission | Scope |
+|------|------------------|-------|
+| `GET /notes?subjectType=ORDER&subjectId={orderId}` | `order.view` | OrderPolicy OWN (`assignedUserId`) or ALL (`order.assign`) |
+| `POST /notes` | `order.update` | same scope |
+| `PATCH /notes/:id` | author, or `order.update` | non-authors must be inside scope. A note id alone is not access |
+| `DELETE /notes/:id` | author, or `order.update` | same as PATCH. **204** |
+
+Create body: `{ subjectType: "ORDER", subjectId, content, mentionedUserIds?: uuid[] }`. Ids are deduped and must be existing `ACTIVE` users, otherwise **400**. Do not send `mentionedUserIds` on CUSTOMER/LEAD.
+
+List is an array, newest first. Each note:
+
+```ts
+{
+  id: string;
+  subjectType: string;
+  subjectId: string;
+  content: string;
+  authorUserId: string;
+  authorName: string;
+  mentionedUserIds: string[];
+  mentionedUserNames: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+PATCH body is `{ content }` only. It does not change mentions and does not emit `order_mentioned` again.
+
+Mention picker: `GET /users/directory?q=` with `order.view` (not `user.manage`). Response is at most 50 rows, `ACTIVE` only: `{ id, displayName, email }`. `email` may be null. `q` matches display name or email. The list is not limited to people who can open the current order; the server stores the mention and skips the bell when that person cannot view the order.
+
+There is still no `POST /notifications`, no order-follower API, and no parsing of `@Name` out of the text. Send `mentionedUserIds` explicitly.
 
 Duplicate `(recipientUserId, dedupeKey)` keeps the existing row.
 
@@ -128,6 +167,10 @@ API: https://apidyn.otcayxe.com/api/v1
 
 ## Type
 task_assigned, order_overdue → orders, href /orders/{id}
+order_mentioned → orders, href /orders/{orderId}?tab=notes
+  title: "{authorName} nhắc bạn trong đơn {orderNumber}"
+  Sau POST /notes subjectType=ORDER, refetch inbox của người được nhắc (không phải tác giả, không phải user không xem được đơn).
+  PATCH /notes không tạo notif mới.
 expense_pending, expense_reviewed → expenses, href /expense-approvals
 payment_overdue → payments, href /payments/{orderId}
 vat_deadline_approaching, vat_overdue → vat, href /orders/{id}
@@ -140,8 +183,18 @@ Job 07:00 Asia/Ho_Chi_Minh đã có. Đừng quét cảnh báo trên client.
 PATCH /orders, change-stage, approve order KHÔNG tạo notif.
 POST /users tạo staff ACTIVE KHÔNG tạo user_pending.
 
+## Notes ORDER + directory
+- GET /notes?subjectType=ORDER&subjectId={orderId} — order.view, đúng scope OWN/ALL. Mới nhất trước.
+- POST /notes { subjectType:"ORDER", subjectId, content, mentionedUserIds } — order.update + scope.
+- Response: id, subjectType, subjectId, content, authorUserId, authorName, mentionedUserIds, mentionedUserNames, createdAt, updatedAt.
+- PATCH/DELETE ORDER: tác giả, hoặc order.update trong scope. Không sửa chỉ vì biết id.
+- CUSTOMER/LEAD giữ customer.view / customer.update. Không gửi mentionedUserIds cho hai loại đó.
+- GET /users/directory?q= — order.view, tối đa 50 user ACTIVE: { id, displayName, email }. Không dùng user.manage.
+
 ## Acceptance
 - [ ] GET unread-count trả đủ 7 category, 0 khi trống. Mark-read một dòng hoặc read-all?category làm total và byCategory giảm.
+- [ ] POST /notes ORDER nhắc user khác xem được đơn → user đó thấy order_mentioned, category orders, href /orders/{id}?tab=notes. Tác giả, user inactive, user không xem được đơn không có row. Gọi lại cùng note không nhân đôi (dedupeKey order_mentioned:{noteId}:{userId}).
+- [ ] GET /users/directory với order.view trả user ACTIVE. user.manage không bắt buộc.
 - [ ] GET /notifications?category=vat chỉ trả VAT của user đó.
 - [ ] Assignee thấy order_overdue / vat_* / payment_overdue / license_expiring sau job (hoặc POST /notifications/scan bởi người có config.manage). Chạy lại cùng ngày không nhân đôi.
 - [ ] Google sign-up PENDING_APPROVAL → user có user.manage thấy user_pending. PATCH status ACTIVE → user đó thấy user_approved. Tạo user ACTIVE bằng admin thì không có user_pending.

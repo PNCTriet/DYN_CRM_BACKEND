@@ -32,6 +32,7 @@ type NotificationCategory =
 
 type NotificationType =
   | 'task_assigned'
+  | 'order_mentioned'
   | 'order_overdue'
   | 'expense_pending'
   | 'expense_reviewed'
@@ -63,7 +64,7 @@ interface Notification {
 
 | `category` | Types | Sidebar |
 |------------|-------|---------|
-| `orders` | `task_assigned`, `order_overdue` | Quản lý đơn hàng `/orders` |
+| `orders` | `task_assigned`, `order_mentioned`, `order_overdue` | Quản lý đơn hàng `/orders` |
 | `expenses` | `expense_pending`, `expense_reviewed` | Đề nghị thanh toán `/expense-approvals` |
 | `payments` | `payment_overdue` | Quản lý thanh toán `/payments` |
 | `vat` | `vat_deadline_approaching`, `vat_overdue` | Quản lý VAT `/vat` |
@@ -125,6 +126,7 @@ Optional env `NOTIFICATION_SCAN_ENABLED=false` disables the cron only. This endp
 | Event | `type` | Recipient | Skipped when |
 |-------|--------|-----------|----------------|
 | `POST /orders` with an assignee, or `POST /orders/:id/assign` when the assignee changes | `task_assigned` | new `assignedUserId` | assignee is the actor |
+| `POST /notes` with `subjectType=ORDER` | `order_mentioned` | each `mentionedUserIds` entry who can view the order | the author; inactive users; users without `order.view` or outside OrderPolicy scope. One row per recipient. `PATCH /notes/:id` does not emit again |
 | `POST /expenses` (`PENDING`) | `expense_pending` | every `ACTIVE` user with `expense.approve` | the requester |
 | `POST /expenses/:id/approve` or `reject` | `expense_reviewed` | `requestedByUserId` | requester is the reviewer |
 | Daily 07:00, processing `deadline` before today | `order_overdue` | assignee | no deadline; stage completed or cancelled; assignee not ACTIVE |
@@ -137,12 +139,14 @@ Optional env `NOTIFICATION_SCAN_ENABLED=false` disables the cron only. This endp
 | MailPort delivery log `SENT` | `email_sent` | actor, else `recipientUserId` | preference skip; nobody to notify |
 | MailPort delivery log `FAILED` | `email_failed` | actor, else `recipientUserId` | preference skip; nobody to notify |
 
-`href` is set on every row (order, `/expense-approvals`, `/payments/:orderId`, `/users/pending`, `/dashboard`, or `/emails`).  
-Duplicate `(recipientUserId, dedupeKey)` keeps the existing row.
+`href` is set on every row (order, `/orders/{id}?tab=notes` for `order_mentioned`, `/expense-approvals`, `/payments/:orderId`, `/users/pending`, `/dashboard`, or `/emails`).  
+Duplicate `(recipientUserId, dedupeKey)` keeps the existing row. `order_mentioned` uses `order_mentioned:{noteId}:{recipientUserId}`.
+
+Title: `{authorName} nhắc bạn trong đơn {orderNumber}`. Body is the note content, trimmed and cut at 120 characters. Inbox failure does not roll back the note. Contract for the note payload and `GET /users/directory`: [crm-extras.md](./crm-extras.md).
 
 Daily dedupe keys end with the civil date (`order_overdue:<orderId>:2026-11-20`) so the next morning can remind again. Event keys do not (`user_pending:<userId>`, `email_sent:<logId>`).
 
-Not created for `PATCH /orders`, `change-stage`, order `approve`, or `POST /reminders`.
+Not created for `PATCH /orders`, `change-stage`, order `approve`, `PATCH /notes/:id`, CUSTOMER/LEAD notes, or `POST /reminders`.
 
 VAT window: config key `crm.reminders` → `vatIssueWarnDays` (default 30, clamp 7–90).  
 License window: `service.customFields.licenseExpiryWarnMonths` (default 2, clamp 1–24), compared to the earliest `license|{issuedAt}|{expiresAt}` file on the order. `serviceEnd` is not used.

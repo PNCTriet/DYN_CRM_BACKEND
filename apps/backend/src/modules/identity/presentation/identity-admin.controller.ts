@@ -24,6 +24,7 @@ import {
   CreateRoleDto,
   CreateUserDto,
   ListUsersQueryDto,
+  UserDirectoryQueryDto,
   SetGroupPermissionsDto,
   SetRolePermissionGroupsDto,
   SetUserRolesDto,
@@ -43,6 +44,16 @@ export class UsersController {
   @ApiOperation({ summary: 'List users (admin)' })
   list(@Query() query: ListUsersQueryDto) {
     return this.admin.listUsers(query);
+  }
+
+  // Before :id so "directory" is not captured as a user id.
+  @Get('directory')
+  @RequirePermission('order.view')
+  @ApiOperation({
+    summary: 'Active users for the order mention picker (id, displayName, email)',
+  })
+  directory(@Query() query: UserDirectoryQueryDto) {
+    return this.admin.directory(query);
   }
 
   @Get(':id')
